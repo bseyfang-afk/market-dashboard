@@ -148,9 +148,9 @@ def fetch_fear_and_greed():
             history_scores = []
             if hist_list:
                 for pt in hist_list[-60:]:
-                    history_scores.append(float(pt.get("y", 30.0)))
+                    history_scores.append(float(pt.get("y", 29.4)))
             return {
-                "score": round(float(fg.get("score", 30.3)), 1),
+                "score": round(float(fg.get("score", 29.4)), 1),
                 "rating": fg.get("rating", "Fear").title(),
                 "prev_close": round(float(fg.get("previous_close", 31.1)), 1),
                 "prev_1_week": round(float(fg.get("previous_1_week", 39.1)), 1),
@@ -159,7 +159,7 @@ def fetch_fear_and_greed():
             }
     except Exception:
         pass
-    return {"score": 30.3, "rating": "Fear", "prev_close": 31.1, "prev_1_week": 39.1, "prev_1_month": 45.0, "history_60d": None}
+    return {"score": 29.4, "rating": "Fear", "prev_close": 31.1, "prev_1_week": 39.1, "prev_1_month": 45.0, "history_60d": None}
 
 @st.cache_data(ttl=300)
 def fetch_cboe_pcr():
@@ -265,32 +265,9 @@ def generate_sample_breadth_data():
         }
     }
 
-# Dedicated 60-Day Trend Chart Renderer
-def render_60d_chart(dates_labels, values, line_color, baseline=None, baseline_label=None, y_range=None):
+# 60-Day Trend Chart Renderer with Exact Custom Vertical Scale (y_range)
+def render_60d_chart(dates_labels, values, line_color, y_range, baseline=None, baseline_label=None):
     if HAS_PLOTLY:
-        val_series = pd.Series(values)
-        if y_range is not None:
-            yaxis_config = dict(
-                range=y_range,
-                showgrid=True,
-                gridcolor='#1e293b',
-                zeroline=False,
-                showticklabels=True,
-                tickfont=dict(size=8, color="#64748b")
-            )
-        else:
-            y_min = float(val_series.min())
-            y_max = float(val_series.max())
-            y_margin = (y_max - y_min) * 0.15 if y_max > y_min else 1.0
-            yaxis_config = dict(
-                range=[y_min - y_margin, y_max + y_margin],
-                showgrid=True,
-                gridcolor='#1e293b',
-                zeroline=False,
-                showticklabels=True,
-                tickfont=dict(size=8, color="#64748b")
-            )
-
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=dates_labels,
@@ -322,7 +299,14 @@ def render_60d_chart(dates_labels, values, line_color, baseline=None, baseline_l
                 nticks=4,
                 tickangle=0
             ),
-            yaxis=yaxis_config,
+            yaxis=dict(
+                range=y_range,
+                showgrid=True,
+                gridcolor='#1e293b',
+                zeroline=False,
+                showticklabels=True,
+                tickfont=dict(size=8, color="#64748b")
+            ),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             showlegend=False
@@ -350,13 +334,13 @@ hist_data = fetch_market_history(tickers_map)
 breadth_data = generate_sample_breadth_data()
 
 # ---------------------------------------------------------
-# SECTION 1: Top Metrics & 60-Trading-Day Rolling Graphs
+# SECTION 1: Top Metrics with Custom Vertical Scales
 # ---------------------------------------------------------
 st.subheader("1. Market Regime, Sentiment & Volatility Health (Last 60 Trading Days)")
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# 1. Fear & Greed Card & 60-Day Chart (Vertical Axis explicitly 0 to 100)
+# 1. Fear & Greed Card & 60-Day Chart (Scale: 0 to 100)
 with col1:
     fg_score = fg_data["score"]
     fg_rating = fg_data["rating"]
@@ -378,11 +362,11 @@ with col1:
         fg_wave = 50 + 20 * np.cos(t) + np.cumsum(np.random.randn(60) * 1.5)
         fg_60d = (fg_wave - fg_wave[-1] + fg_score).clip(5, 95).tolist()
         
-    render_60d_chart(dates_60d_str, fg_60d, "#f87171", baseline=50.0, baseline_label="Neutral 50", y_range=[0, 100])
+    render_60d_chart(dates_60d_str, fg_60d, "#f87171", y_range=[0, 100], baseline=50.0, baseline_label="Neutral 50")
 
-# 2. VIX Volatility Card & 60-Day Chart
+# 2. VIX Volatility Card & 60-Day Chart (Scale: 10 to 40)
 vix_sym = tickers_map["VIX (Volatility)"]
-vix_last, vix_high, vix_close, vix_ratio = 16.83, 18.03, 16.83, 0.933
+vix_last, vix_high, vix_close, vix_ratio = 17.49, 18.03, 17.49, 0.970
 vix_60d_series = None
 vix_ratio_60d_series = None
 
@@ -401,11 +385,11 @@ if hist_data is not None and vix_sym in hist_data:
 if vix_60d_series is None:
     np.random.seed((int(today_dt.strftime("%Y%m%d")) + 1) % 10000)
     t = np.linspace(0, 3 * np.pi, 60)
-    v_wave = 15.0 + 4.5 * np.cos(t) + np.cumsum(np.random.randn(60) * 0.4)
-    vix_60d_series = (v_wave - v_wave[-1] + vix_last).clip(11.5, 34.0).tolist()
+    v_wave = 16.0 + 5.0 * np.cos(t) + np.cumsum(np.random.randn(60) * 0.4)
+    vix_60d_series = (v_wave - v_wave[-1] + vix_last).clip(10.5, 38.0).tolist()
     
     r_wave = 0.94 + 0.03 * np.sin(t * 1.5) + np.cumsum(np.random.randn(60) * 0.01)
-    vix_ratio_60d_series = (r_wave - r_wave[-1] + vix_ratio).clip(0.84, 0.99).tolist()
+    vix_ratio_60d_series = (r_wave - r_wave[-1] + vix_ratio).clip(0.55, 1.05).tolist()
 
 with col2:
     st.markdown(f"""
@@ -415,9 +399,9 @@ with col2:
         <div class="metric-sub">Day Range: {vix_close:.2f} / High: {vix_high:.2f}</div>
     </div>
     """, unsafe_allow_html=True)
-    render_60d_chart(dates_60d_str, vix_60d_series, "#38bdf8", baseline=20.0, baseline_label="Stress 20")
+    render_60d_chart(dates_60d_str, vix_60d_series, "#38bdf8", y_range=[10, 40], baseline=20.0, baseline_label="Stress 20")
 
-# 3. VIX Close / High Ratio Card & 60-Day Chart
+# 3. VIX Close / High Ratio Card & 60-Day Chart (Scale: 0.5 to 1.1)
 with col3:
     vix_badge = "badge-green" if vix_ratio < 0.92 else ("badge-red" if vix_ratio > 0.97 else "badge-yellow")
     vix_note = "Vol Fade (Relief)" if vix_ratio < 0.92 else ("Vol Close @ Highs" if vix_ratio > 0.97 else "Neutral")
@@ -428,9 +412,9 @@ with col3:
         <div class="metric-sub">&lt; 0.92 = Vol rejected intraday</div>
     </div>
     """, unsafe_allow_html=True)
-    render_60d_chart(dates_60d_str, vix_ratio_60d_series, "#facc15", baseline=0.92, baseline_label="Vol Fade 0.92", y_range=[0.80, 1.02])
+    render_60d_chart(dates_60d_str, vix_ratio_60d_series, "#facc15", y_range=[0.5, 1.1], baseline=0.92, baseline_label="Vol Fade 0.92")
 
-# 4. SKEW Index Card & 60-Day Chart
+# 4. SKEW Index Card & 60-Day Chart (Scale: 120 to 180)
 skew_sym = tickers_map["SKEW Index"]
 skew_val = 152.1
 skew_60d_series = None
@@ -444,8 +428,8 @@ if hist_data is not None and skew_sym in hist_data:
 if skew_60d_series is None:
     np.random.seed((int(today_dt.strftime("%Y%m%d")) + 2) % 10000)
     t = np.linspace(0, 3 * np.pi, 60)
-    s_wave = 142.0 + 8.0 * np.sin(t) + np.cumsum(np.random.randn(60) * 0.9)
-    skew_60d_series = (s_wave - s_wave[-1] + skew_val).clip(125.0, 168.0).tolist()
+    s_wave = 145.0 + 8.0 * np.sin(t) + np.cumsum(np.random.randn(60) * 0.9)
+    skew_60d_series = (s_wave - s_wave[-1] + skew_val).clip(122.0, 178.0).tolist()
 
 with col4:
     skew_badge = "badge-red" if skew_val > 145 else ("badge-yellow" if skew_val > 135 else "badge-green")
@@ -457,9 +441,9 @@ with col4:
         <div class="metric-sub">&gt; 145 indicates Black Swan hedging</div>
     </div>
     """, unsafe_allow_html=True)
-    render_60d_chart(dates_60d_str, skew_60d_series, "#ef4444", baseline=145.0, baseline_label="Tail Risk 145")
+    render_60d_chart(dates_60d_str, skew_60d_series, "#ef4444", y_range=[120, 180], baseline=145.0, baseline_label="Tail Risk 145")
 
-# 5. Put-Call Ratio Card & 60-Day Chart
+# 5. Put-Call Ratio Card & 60-Day Chart (Scale: 0.6 to 1.5)
 with col5:
     pcr_last = pcr_data["pcr_last"]
     pcr_max = pcr_data["pcr_max"]
@@ -475,9 +459,9 @@ with col5:
     
     np.random.seed((int(today_dt.strftime("%Y%m%d")) + 3) % 10000)
     t = np.linspace(0, 4 * np.pi, 60)
-    p_wave = 0.88 + 0.12 * np.cos(t) + np.cumsum(np.random.randn(60) * 0.02)
-    pcr_60d_series = (p_wave - p_wave[-1] + pcr_last).clip(0.65, 1.25).tolist()
-    render_60d_chart(dates_60d_str, pcr_60d_series, "#a855f7", baseline=1.0, baseline_label="Buy Zone 1.0")
+    p_wave = 0.95 + 0.15 * np.cos(t) + np.cumsum(np.random.randn(60) * 0.02)
+    pcr_60d_series = (p_wave - p_wave[-1] + pcr_last).clip(0.62, 1.48).tolist()
+    render_60d_chart(dates_60d_str, pcr_60d_series, "#a855f7", y_range=[0.6, 1.5], baseline=1.0, baseline_label="Buy Zone 1.0")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -524,7 +508,7 @@ for label, sym, is_vix in indices_to_track:
 
     if last_price == 0.0:
         sample_defaults = {
-            "^VIX": (16.83, 16.10, 3, 17.50, -4),
+            "^VIX": (17.49, 16.10, 3, 17.50, -4),
             "^GSPC": (5890.25, 5820.10, 14, 5680.00, 22),
             "ES=F": (5895.00, 5825.00, 14, 5685.00, 22),
             "^NDX": (20850.10, 20450.00, 12, 19800.00, 18),
@@ -677,4 +661,3 @@ if st.button("🚀 Generate AI Pre-Market Swing Trade Briefing"):
 """
     st.info(briefing_text)
     st.success("✅ Morning routine complete. Check individual stock watchlists against market regime.")
-EOF
