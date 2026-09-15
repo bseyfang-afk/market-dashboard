@@ -309,7 +309,6 @@ st.subheader("1. Market Regime, Sentiment & Volatility Health")
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# Standard Intraday Time Track (Market Hours: 09:30 AM to 04:00 PM EST)
 intraday_hours = [
     "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", 
     "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00"
@@ -328,13 +327,12 @@ with col1:
     </div>
     """, unsafe_allow_html=True)
     
-    # Intraday development of Fear & Greed during last trading day
     fg_intraday = [31.5, 31.8, 31.0, 30.2, 29.5, 29.8, 29.4, 29.9, 30.1, 29.8, 30.0, 30.2, 30.4, 30.3]
     render_mini_chart(intraday_hours, fg_intraday, "#f87171", "rgba(248, 113, 113, 0.12)", "F&G")
 
 # 2. VIX Volatility Card & Intraday Chart
 vix_sym = tickers_map["VIX (Volatility)"]
-vix_last, vix_high, vix_close, vix_ratio = 17.06, 18.03, 17.06, 0.946
+vix_last, vix_high, vix_close, vix_ratio = 17.02, 18.03, 17.02, 0.944
 
 if hist_data is not None and vix_sym in hist_data:
     vix_df = hist_data[vix_sym].dropna()
@@ -354,8 +352,7 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
     
-    # Intraday VIX movement (open 17.25 -> morning spike to 18.03 -> afternoon fade to 17.06)
-    vix_intraday = [17.25, 17.60, 18.03, 17.85, 17.55, 17.40, 17.35, 17.45, 17.30, 17.22, 17.15, 17.18, 17.10, 17.06]
+    vix_intraday = [17.25, 17.60, 18.03, 17.85, 17.55, 17.40, 17.35, 17.45, 17.30, 17.22, 17.15, 17.18, 17.10, 17.02]
     render_mini_chart(intraday_hours, vix_intraday, "#38bdf8", "rgba(56, 189, 248, 0.12)", "VIX")
 
 # 3. VIX Close / High Ratio Card & Intraday Chart
@@ -370,7 +367,6 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
     
-    # Intraday trajectory of (Current / Intraday High)
     ratio_intraday = [round(v / vix_high, 3) for v in vix_intraday]
     render_mini_chart(intraday_hours, ratio_intraday, "#facc15", "rgba(250, 204, 21, 0.12)", "Ratio", baseline=0.92)
 
@@ -393,7 +389,6 @@ with col4:
     </div>
     """, unsafe_allow_html=True)
     
-    # Intraday development of SKEW
     skew_intraday = [148.5, 149.2, 150.0, 151.2, 152.5, 152.8, 152.0, 151.5, 151.8, 152.4, 152.6, 152.3, 152.2, 152.1]
     render_mini_chart(intraday_hours, skew_intraday, "#ef4444", "rgba(239, 68, 68, 0.12)", "SKEW", baseline=145)
 
@@ -411,7 +406,6 @@ with col5:
     </div>
     """, unsafe_allow_html=True)
     
-    # Intraday PCR curve (morning open 0.76 -> midday hedging spike 1.08 -> close 0.86)
     pcr_intraday = [0.76, 0.84, 0.95, 1.08, 1.02, 0.98, 0.92, 0.89, 0.91, 0.88, 0.87, 0.89, 0.88, 0.86]
     render_mini_chart(intraday_hours, pcr_intraday, "#a855f7", "rgba(168, 85, 247, 0.12)", "PCR", baseline=1.0)
 
@@ -460,7 +454,7 @@ for label, sym, is_vix in indices_to_track:
 
     if last_price == 0.0:
         sample_defaults = {
-            "^VIX": (17.06, 16.10, 3, 17.50, -4),
+            "^VIX": (17.02, 16.10, 3, 17.50, -4),
             "^GSPC": (5890.25, 5820.10, 14, 5680.00, 22),
             "ES=F": (5895.00, 5825.00, 14, 5685.00, 22),
             "^NDX": (20850.10, 20450.00, 12, 19800.00, 18),
