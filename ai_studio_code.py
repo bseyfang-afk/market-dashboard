@@ -1,8 +1,21 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import yfinance as yf
+import os
+import subprocess
+import sys
+
+# Auto-install yfinance and plotly if missing
+try:
+  import yfinance as yf
+except ImportError:
+  subprocess.check_call(
+      [sys.executable, "-m", "pip", "install", "yfinance", "plotly"]
+  )
+  import yfinance as yf
+
+import datetime
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import requests
+import streamlit as st
 import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
