@@ -1,21 +1,17 @@
-import sys
-import subprocess
-
-# Self-healing package installer: guarantees app runs even if requirements.txt is missed
-for pkg in ["yfinance", "plotly", "requests", "pandas", "numpy"]:
-    try:
-        __import__(pkg)
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
-
 import streamlit as st
 import pandas as pd
 import numpy as np
-import yfinance as yf
 import requests
 import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
+# Optional yfinance import (with fallback so app NEVER crashes)
+try:
+    import yfinance as yf
+    HAS_YFINANCE = True
+except ImportError:
+    HAS_YFINANCE = False
 
 # ---------------------------------------------------------
 # Streamlit Page Config & High-Contrast Theme
@@ -27,7 +23,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom High-Contrast Trading Desk CSS
 st.markdown("""
 <style>
     .metric-card {
@@ -107,7 +102,6 @@ HEADERS = {
 
 @st.cache_data(ttl=900)
 def fetch_fear_and_greed():
-    """Fetch CNN Fear & Greed index from CNN Dataviz endpoint"""
     url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
     try:
         r = requests.get(url, headers=HEADERS, timeout=8)
@@ -123,17 +117,10 @@ def fetch_fear_and_greed():
             }
     except Exception:
         pass
-    return {
-        "score": 58.0,
-        "rating": "Greed",
-        "prev_close": 55.0,
-        "prev_1_week": 50.0,
-        "prev_1_month": 45.0,
-    }
+    return {"score": 58.0, "rating": "Greed", "prev_close": 55.0, "prev_1_week": 50.0, "prev_1_month": 45.0}
 
 @st.cache_data(ttl=900)
 def fetch_cboe_pcr():
-    """Fetch CBOE Put-Call Ratio summary"""
     try:
         r = requests.get("https://cdn.cboe.com/api/global/us_indices/daily_market_statistics/daily_market_statistics.json", headers=HEADERS, timeout=8)
         if r.status_code == 200:
@@ -147,12 +134,7 @@ def fetch_cboe_pcr():
             }
     except Exception:
         pass
-    return {
-        "pcr_last": 0.86,
-        "pcr_max": 1.08,
-        "equity_pcr": 0.59,
-        "index_pcr": 1.19,
-    }
+    return {"pcr_last": 0.86, "pcr_max": 1.08, "equity_pcr": 0.59, "index_pcr": 1.19}
 
 def get_asset_tickers(use_futures=False):
     spx = "ES=F" if use_futures else "^GSPC"
@@ -176,6 +158,8 @@ def get_asset_tickers(use_futures=False):
 
 @st.cache_data(ttl=900)
 def fetch_market_history(tickers_dict):
+    if not HAS_YFINANCE:
+        return None
     all_symbols = list(tickers_dict.values())
     extra_symbols = ["^NYAD", "SPY", "QQQ"]
     all_symbols = list(set(all_symbols + extra_symbols))
@@ -256,13 +240,12 @@ hist_data = fetch_market_history(tickers_map)
 breadth_data = generate_sample_breadth_data()
 
 # ---------------------------------------------------------
-# SECTION 1: Top Metrics (Fear & Greed, SKEW, VIX Ratio, PCR)
+# SECTION 1: Top Metrics
 # ---------------------------------------------------------
 st.subheader("1. Market Regime, Sentiment & Volatility Health")
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# 1. Fear & Greed
 with col1:
     fg_score = fg_data["score"]
     fg_rating = fg_data["rating"]
@@ -275,7 +258,6 @@ with col1:
     </div>
     """, unsafe_allow_html=True)
 
-# 2. VIX Volatility & Ratio
 vix_sym = tickers_map["VIX (Volatility)"]
 vix_last, vix_high, vix_close, vix_ratio = 15.42, 16.85, 15.42, 0.915
 
@@ -308,7 +290,6 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
 
-# 3. SKEW Index
 skew_sym = tickers_map["SKEW Index"]
 skew_val = 138.5
 if hist_data is not None and skew_sym in hist_data:
@@ -327,7 +308,6 @@ with col4:
     </div>
     """, unsafe_allow_html=True)
 
-# 4. Put-Call Ratio
 with col5:
     pcr_last = pcr_data["pcr_last"]
     pcr_max = pcr_data["pcr_max"]
@@ -384,7 +364,6 @@ for label, sym, is_vix in indices_to_track:
             w_ma = float(ma_weekly.iloc[-1]) if len(ma_weekly) > 0 else 0.0
             weeks_consec = calculate_consecutive_days_above_ma(weekly_close, ma_weekly)
 
-    # Defaults if off-market / demo
     if last_price == 0.0:
         sample_defaults = {
             "^VIX": (15.42, 16.10, -6, 17.50, -4),
