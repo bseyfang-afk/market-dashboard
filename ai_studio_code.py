@@ -796,7 +796,7 @@ st.subheader("3. S&P 500 vs. Advance-Decline (A/D) Line Divergence")
 st.caption(
     "Tracking breadth divergence using NYSE Net Advances and Cumulative $NYAD."
     " Source: [StockCharts Advance/Decline"
-    " Feed](https://stockcharts.com)"
+    " Feed](https://stockcharts.com/sc3/ui/?s=$nyad)"
 )
 
 ad_dates = pd.date_range(end=today_dt, periods=90, freq="B")
@@ -821,80 +821,34 @@ st.markdown(
 if HAS_PLOTLY:
   from plotly.subplots import make_subplots
 
-  # Setup subplots with y-axes placed similarly to StockCharts layout
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
-  
-  # 1. Cumulative A/D Line ($NYAD) - Plotted as the dark blue curve
-  fig_ad.add_trace(
-      go.Scatter(
-          x=ad_dates,
-          y=ad_sim,
-          name="$NYAD Cumulative",
-          line=dict(color="#1d4ed8", width=2), # Dark Blue path matching reference chart
-      ),
-      secondary_y=False,
-  )
-
-  # 2. S&P 500 Index ($SPX) - Plotted as a solid neutral curve overlaying the canvas
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
           y=sp_sim,
-          name="$SPX Index",
-          line=dict(color="#0f172a", width=2), # Crisp deep gray/black tone matching the reference overlay
+          name="S&P 500 Index",
+          line=dict(color="#38bdf8", width=2.5),
       ),
+      secondary_y=False,
+  )
+  fig_ad.add_trace(
+      go.Scatter(
+          x=ad_dates,
+          y=ad_sim,
+          name="Cumulative NYSE A/D Line ($NYAD)",
+          line=dict(color="#f59e0b", width=2, dash="dot")),
       secondary_y=True,
   )
-
-  # Formatting Layout to mirror the clean layout grid of StockCharts
   fig_ad.update_layout(
-      template="plotly_white",  # Switched to a bright grid layout matching the reference
-      paper_bgcolor="#ffffff",
-      plot_bgcolor="#ffffff",
-      height=400,
-      margin=dict(l=20, r=60, t=30, b=20),
-      xaxis=dict(
-          showgrid=True,
-          gridcolor="#e2e8f0",
-          tickfont=dict(color="#475569", size=10),
-          mirror=True,
-          linewidth=1,
-          linecolor="#cbd5e1"
-      ),
-      yaxis=dict(
-          title="$NYAD Cumulative",
-          titlefont=dict(color="#1d4ed8", size=11),
-          showgrid=True,
-          gridcolor="#e2e8f0",
-          tickfont=dict(color="#475569", size=10),
-          side="left",
-          mirror=True,
-          linewidth=1,
-          linecolor="#cbd5e1"
-      ),
-      yaxis2=dict(
-          title="$SPX Price",
-          titlefont=dict(color="#0f172a", size=11),
-          showgrid=False,  # Keep grid lines clean from dual conflicts
-          tickfont=dict(color="#475569", size=10),
-          side="right",
-          overlaying="y",
-          mirror=True,
-          linewidth=1,
-          linecolor="#cbd5e1"
-      ),
-      showlegend=True,
-      legend=dict(
-          orientation="h",
-          yanchor="bottom",
-          y=1.02,
-          xanchor="left",
-          x=0.01,
-          font=dict(size=10)
-      )
+      template="plotly_dark",
+      paper_bgcolor="#111827",
+      plot_bgcolor="#111827",
+      height=340,
+      margin=dict(l=20, r=20, t=30, b=20),
   )
   st.plotly_chart(fig_ad, use_container_width=True)
 
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # SECTION 4: Volume Dynamics & 52-Week Highs / Lows
