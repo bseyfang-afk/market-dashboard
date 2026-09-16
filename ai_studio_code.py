@@ -415,7 +415,7 @@ st.subheader(
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# 1. Fear & Greed Card (Limits: ONLY and EXACTLY 0 to 100)
+# 1. Fear & Greed Card (Continuous Solid Red @ 80, Solid Green @ 20, Dotted @ 50)
 with col1:
   fg_score = fg_data["score"]
   fg_rating = fg_data["rating"]
@@ -444,6 +444,11 @@ with col1:
     fg_wave = 50 + 20 * np.cos(t) + np.cumsum(np.random.randn(60) * 1.5)
     fg_60d = (fg_wave - fg_wave[-1] + fg_score).clip(5, 95).tolist()
 
+  # Guaranteed continuous solid horizontal lines
+  fg_solid_lines = [
+      {"y": 80, "color": "#ef4444", "width": 2.8, "dash": "solid"},
+      {"y": 20, "color": "#22c55e", "width": 2.8, "dash": "solid"},
+  ]
   render_60d_chart(
       dates_60d_str,
       fg_60d,
@@ -451,6 +456,7 @@ with col1:
       y_range=[0, 100],
       baseline=50.0,
       baseline_label="Neutral 50",
+      extra_traces=fg_solid_lines,
   )
 
 # 2. VIX Volatility Card (Limits: ONLY and EXACTLY 10 to 40)
