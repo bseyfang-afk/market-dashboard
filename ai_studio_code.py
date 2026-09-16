@@ -322,7 +322,8 @@ def render_60d_chart(
     y_range,
     baseline=None,
     baseline_label=None,
-    extra_traces=None,
+    *args,
+    **kwargs,
 ):
   y_min, y_max = y_range[0], y_range[1]
   safe_values = np.clip(values, y_min, y_max).tolist()
@@ -332,25 +333,30 @@ def render_60d_chart(
   if HAS_PLOTLY:
     fig = go.Figure()
 
-    # Render custom horizontal reference lines (e.g. solid continuous red @ 80 and green @ 20)
-    if extra_traces:
-      for tr in extra_traces:
-        fig.add_trace(
-            go.Scatter(
-                x=dates_labels,
-                y=[tr["y"]] * len(dates_labels),
-                mode="lines",
-                line=dict(
-                    color=tr["color"],
-                    width=tr.get("width", 2.8),
-                    dash=tr.get("dash", "solid"),
-                ),
-                hoverinfo="skip",
-                showlegend=False,
-            )
-        )
+    # Method 1: Continuous solid Red line @ 80 and solid Green line @ 20 for Fear & Greed
+    if y_range == [0, 100]:
+      fig.add_trace(
+          go.Scatter(
+              x=dates_labels,
+              y=[80] * len(dates_labels),
+              mode="lines",
+              line=dict(color="#ef4444", width=2.8),
+              hoverinfo="skip",
+              showlegend=False,
+          )
+      )
+      fig.add_trace(
+          go.Scatter(
+              x=dates_labels,
+              y=[20] * len(dates_labels),
+              mode="lines",
+              line=dict(color="#22c55e", width=2.8),
+              hoverinfo="skip",
+              showlegend=False,
+          )
+      )
 
-    # Render main indicator line
+    # Main indicator line
     fig.add_trace(
         go.Scatter(
             x=dates_labels,
@@ -361,7 +367,7 @@ def render_60d_chart(
         )
     )
 
-    # Render dotted neutral / benchmark line if provided
+    # Dotted baseline (e.g. 50 Neutral for Fear & Greed, 20 Stress for VIX, etc.)
     if baseline is not None and y_min <= baseline <= y_max:
       fig.add_hline(
           y=baseline,
@@ -438,7 +444,7 @@ st.subheader(
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# 1. Fear & Greed Card (Continuous Solid Red @ 80, Solid Green @ 20, Dotted @ 50)
+# 1. Fear & Greed Card (Method 1: Solid Red @ 80, Solid Green @ 20, Limits: 0 to 100)
 with col1:
   fg_score = fg_data["score"]
   fg_rating = fg_data["rating"]
@@ -467,11 +473,6 @@ with col1:
     fg_wave = 50 + 20 * np.cos(t) + np.cumsum(np.random.randn(60) * 1.5)
     fg_60d = (fg_wave - fg_wave[-1] + fg_score).clip(5, 95).tolist()
 
-  # Guaranteed continuous solid horizontal lines
-  fg_solid_lines = [
-      {"y": 80, "color": "#ef4444", "width": 2.8, "dash": "solid"},
-      {"y": 20, "color": "#22c55e", "width": 2.8, "dash": "solid"},
-  ]
   render_60d_chart(
       dates_60d_str,
       fg_60d,
@@ -479,7 +480,6 @@ with col1:
       y_range=[0, 100],
       baseline=50.0,
       baseline_label="Neutral 50",
-      extra_traces=fg_solid_lines,
   )
 
 # 2. VIX Volatility Card (Limits: ONLY and EXACTLY 10 to 40)
