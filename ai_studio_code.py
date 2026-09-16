@@ -45,7 +45,7 @@ st.markdown(
         font-size: 0.74rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #94a3b8;
+        color: #ffffff; /* <-- UPDATED TO PURE WHITE FOR HIGH CONTRAST */
         font-weight: 600;
         margin-bottom: 4px;
         display: flex;
