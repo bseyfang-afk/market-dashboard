@@ -799,11 +799,11 @@ st.caption(
     " Feed](https://stockcharts.com/sc3/ui/?s=$nyad)"
 )
 
-ad_dates = pd.date_range(end=today_dt, periods=90, freq="B")
+ad_dates = pd.date_range(end=today_dt, periods=170, freq="B") # Expanded to ~8 calendar months (170 trading days)
 np.random.seed(42)
-sp_sim = 5500 + np.cumsum(np.random.randn(90) * 12 + 2)
-ad_sim = np.cumsum(np.random.randn(90) * 350 + 150)
-ad_sim[-15:] = ad_sim[-15:] - np.arange(15) * 40
+sp_sim = 5500 + np.cumsum(np.random.randn(170) * 12 + 2)
+ad_sim = np.cumsum(np.random.randn(170) * 350 + 150)
+ad_sim[-30:] = ad_sim[-30:] - np.arange(30) * 40 # Simulates recent divergence leg
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: S&P 500 is testing recent swing highs, but"
@@ -864,14 +864,17 @@ if HAS_PLOTLY:
       )
   )
 
-  # Explicit axis formatting updates to guarantee grid lines match perfectly
+  # Configure continuous date handling to display clean multi-month grid partitions
   fig_ad.update_xaxes(
+      type="date", # Sets the axis to read structural dates instead of categorical text
+      dtick="M1", # Forces grid grid lines to slice exactly on 1-month intervals
+      tickformat="%b %y", # Labels ticks cleanly as Month-Year abbreviations (e.g. 'Jan 26')
       showgrid=True,
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10)
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale - now black to match the line)
+  # Configure primary Left Y-Axis ($NYAD Scale - matching the black data line)
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
@@ -881,7 +884,7 @@ if HAS_PLOTLY:
       secondary_y=False
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale - now blue to match the line)
+  # Configure secondary Right Y-Axis ($SPX Scale - matching the blue data line)
   fig_ad.update_yaxes(
       title_text="$SPX Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
@@ -891,7 +894,6 @@ if HAS_PLOTLY:
   )
 
   st.plotly_chart(fig_ad, use_container_width=True)
-
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
