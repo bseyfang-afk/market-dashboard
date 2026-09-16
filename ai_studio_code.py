@@ -984,7 +984,7 @@ if HAS_PLOTLY:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# SECTION 4: Volume Dynamics & 52-Week Highs / Lows (PERCENTAGE MODE)
+# SECTION 4: Volume Dynamics & 52-Week Highs / Lows (COMPLETE SHARER REGIME)
 # ---------------------------------------------------------
 st.subheader("4. Volume Dynamics & 52-Week Highs / Lows (NYSE & NASDAQ)")
 st.caption("Synchronized Market Metrics representing both Issues & Shares in percentages.")
@@ -996,13 +996,15 @@ nasdaq_data = breadth_data["nasdaq"]
 
 with col_nyse:
   st.markdown("#### 🏛️ NYSE Breadth & Volume")
-  c1, c2 = st.columns(2)
   
-  # Card row 1: Shares (Volume) percentages
-  c1.metric("Advancing Volume (Shares %)", f"{nyse_data['adv_vol_pct']}%")
-  c2.metric("Declining Volume (Shares %)", f"{nyse_data['dec_vol_pct']}%")
+  # Row 1: Shares (Volume) percentages in a clean 3-column split
+  st.markdown("##### **Shares Momentum (Volume %)**")
+  c1, c2, c3 = st.columns(3)
+  c1.metric("Advancing Vol %", f"{nyse_data['adv_vol_pct']}%")
+  c2.metric("Declining Vol %", f"{nyse_data['dec_vol_pct']}%")
+  c3.metric("Unchanged Vol %", f"{nyse_data['unch_vol_pct']}%")
   
-  # Card row 2: Issues (Companies) percentages
+  # Row 2: Issues (Companies) percentages
   st.markdown("##### **Issues Momentum (Companies %)**")
   i1, i2, i3 = st.columns(3)
   i1.markdown(f"🟢 **Advancing:** {nyse_data['adv_stocks_pct']}%")
@@ -1021,13 +1023,15 @@ with col_nyse:
 
 with col_nasdaq:
   st.markdown("#### 💻 NASDAQ Breadth & Volume")
-  c1, c2 = st.columns(2)
   
-  # Card row 1: Shares (Volume) percentages
-  c1.metric("Advancing Volume (Shares %)", f"{nasdaq_data['adv_vol_pct']}%")
-  c2.metric("Declining Volume (Shares %)", f"{nasdaq_data['dec_vol_pct']}%")
+  # Row 1: Shares (Volume) percentages in a clean 3-column split
+  st.markdown("##### **Shares Momentum (Volume %)**")
+  c1, c2, c3 = st.columns(3)
+  c1.metric("Advancing Vol %", f"{nasdaq_data['adv_vol_pct']}%")
+  c2.metric("Declining Vol %", f"{nasdaq_data['dec_vol_pct']}%")
+  c3.metric("Unchanged Vol %", f"{nasdaq_data['unch_vol_pct']}%")
   
-  # Card row 2: Issues (Companies) percentages
+  # Row 2: Issues (Companies) percentages
   st.markdown("##### **Issues Momentum (Companies %)**")
   i1, i2, i3 = st.columns(3)
   i1.markdown(f"🟢 **Advancing:** {nasdaq_data['adv_stocks_pct']}%")
