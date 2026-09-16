@@ -340,7 +340,7 @@ def render_60d_chart(
               x=dates_labels,
               y=[80] * len(dates_labels),
               mode="lines",
-              line=dict(color="#ef4444", width=1.5),
+              line=dict(color="#ef4444", width=1.5, dash="dash"),
               hoverinfo="skip",
               showlegend=False,
           )
@@ -350,7 +350,7 @@ def render_60d_chart(
               x=dates_labels,
               y=[20] * len(dates_labels),
               mode="lines",
-              line=dict(color="#22c55e", width=1.5),
+              line=dict(color="#22c55e", width=1.5, dash="dash"),
               hoverinfo="skip",
               showlegend=False,
           )
