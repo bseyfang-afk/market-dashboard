@@ -842,26 +842,26 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
 
-# --- FEILSIKKER PROSENT-MAPPING (FORDRIVER ALDRI LINJER UTENFOR KANVAS) ---
-# Finn bunn og topp for begge datasettene uavhengig
+# --- OPTIMALISERT MIN-MAX OVERLAY-MATEMATIKK ---
+# Finn bunn og topp for begge datasettene uavhengig over hele 8-månedersperioden
 ad_low, ad_high = float(np.min(raw_ad_vals)), float(np.max(raw_ad_vals))
 sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
 
 ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
 sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
 
-# Lås begge linjene til et felles visuelt plan fra 0 til 100% basert på startverdiene deres
-# Dette gjør at de tvinges til å overlappe nøyaktig slik som i StockCharts
-ad_start_val = float(raw_ad_vals[0])
-sp_start_val = float(raw_sp_vals[0])
+ad_start_val = float(raw_ad_vals)
+sp_start_val = float(raw_sp_vals)
 
-ad_sim = 50.0 + ((raw_ad_vals - ad_start_val) / ad_range_span) * 40.0
-sp_sim = 50.0 + ((raw_sp_vals - sp_start_val) / sp_range_span) * 40.0
+# Normaliser begge seriene til en perfekt felles visuell skala (0% til 100%)
+# Dette tvinger både bunnene og toppene til å utnytte nøyaktig samme vertikale plass
+ad_sim = ((raw_ad_vals - ad_low) / ad_range_span) * 100.0
+sp_sim = ((raw_sp_vals - sp_low) / sp_range_span) * 100.0
 
-# Opprett 5 jevnt fordelte referansepunkter på aksene
-axis_ticks = [10, 30, 50, 70, 90]
-left_labels = [f"{int(ad_start_val + ((t - 50.0) / 40.0) * ad_range_span):,}" for t in axis_ticks]
-right_labels = [f"{int(sp_start_val + ((t - 50.0) / 40.0) * sp_range_span):,}" for t in axis_ticks]
+# Opprett 5 jevnt fordelte referansepunkter på rutenettet
+axis_ticks = 
+left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
+right_labels = [f"{int(sp_low + (t / 100.0) * sp_range_span):,}" for t in axis_ticks]
 # ------------------------------------------------------------------------
 
 divergence_state = (
@@ -944,7 +944,7 @@ if HAS_PLOTLY:
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=[0, 100], 
+      range=[-5, 105], # Gir 5% polstring i topp og bunn for å unngå linjeklipping
       tickmode="array",
       tickvals=axis_ticks,
       ticktext=left_labels,
@@ -961,7 +961,7 @@ if HAS_PLOTLY:
   fig_ad.update_yaxes(
       title_text="Index Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=[0, 100], 
+      range=[-5, 105], # Gir 5% polstring i topp og bunn for å unngå linjeklipping
       tickmode="array",
       tickvals=axis_ticks,
       ticktext=right_labels,
