@@ -843,28 +843,30 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
 
-# --- DAY 1 BASELINE ALIGNMENT ENGINE (STOCKCHARTS STYLE) ---
-# Calculate the absolute ranges of both series to scale their visual sizes equally
+# --- FIXED DAY 1 BASELINE ALIGNMENT ENGINE ---
 ad_min_val, ad_max_val = float(np.min(raw_ad)), float(np.max(raw_ad))
 sp_min_val, sp_max_val = float(np.min(raw_sp)), float(np.max(raw_sp))
 
 ad_range_val = ad_max_val - ad_min_val if (ad_max_val - ad_min_val) > 0 else 1
 sp_range_val = sp_max_val - sp_min_val if (sp_max_val - sp_min_val) > 0 else 1
 
-# 1. Scale the index movements so they have the same vertical height as the A/D line
-# 2. Shift the line vertically so Day 1 (index 0) aligns perfectly with the A/D line's Day 1 value
-scaled_sp_line = raw_ad[0] + ((raw_sp - raw_sp[0]) / sp_range_val) * ad_range_val * 0.90
+# Fixed Day 1 anchor conversion by isolating the elements as absolute float objects
+day1_ad = float(raw_ad[0])
+day1_sp = float(raw_sp[0])
 
-# Calculate strict unified chart axis window boundaries with 6% edge padding
+# Re-index the index dataset so its Day 1 point matches the A/D line exactly on the left edge
+scaled_sp_line = day1_ad + ((raw_sp - day1_sp) / sp_range_val) * ad_range_val * 0.90
+
+# Calculate strict unified chart axis window boundaries with clean 6% edge padding
 final_combined_min = min(min(raw_ad), min(scaled_sp_line))
 final_combined_max = max(max(raw_ad), max(scaled_sp_line))
 final_combined_range = final_combined_max - final_combined_min
 
 ad_limits = [final_combined_min - (final_combined_range * 0.06), final_combined_max + (final_combined_range * 0.06)]
 
-# Map the right axis price boundaries dynamically to display real market quote levels accurately
-right_axis_min = raw_sp[0] + ((ad_limits[0] - raw_ad[0]) / (ad_range_val * 0.90)) * sp_range_val
-right_axis_max = raw_sp[0] + ((ad_limits[1] - raw_ad[0]) / (ad_range_val * 0.90)) * sp_range_val
+# Map the right axis price boundaries dynamically to preserve true quote scaling data
+right_axis_min = day1_sp + ((ad_limits[0] - day1_ad) / (ad_range_val * 0.90)) * sp_range_val
+right_axis_max = day1_sp + ((ad_limits[1] - day1_ad) / (ad_range_val * 0.90)) * sp_range_val
 spx_limits = [right_axis_min, right_axis_max]
 # -----------------------------------------------------------
 
