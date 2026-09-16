@@ -819,7 +819,8 @@ if not use_live_data:
   # Safe backup simulation loop in case of internet connection dropouts
   ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
   np.random.seed(42)
-  sp_sim = 5500 + np.cumsum(np.random.randn(170) * 15 + 1).tolist()
+  # Fixed the TypeError: add the baseline value to the array BEFORE calling .tolist()
+  sp_sim = (5500 + np.cumsum(np.random.randn(170) * 15 + 1)).tolist()
   # Use sine waves to simulate a more natural, organic volatility for backup data
   t = np.linspace(0, 4 * np.pi, 170)
   ad_sim = (11500 + np.sin(t) * 400 + np.cumsum(np.random.randn(170) * 180)).tolist()
@@ -913,6 +914,7 @@ if HAS_PLOTLY:
   )
 
   st.plotly_chart(fig_ad, use_container_width=True)
+  
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
