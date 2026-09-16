@@ -799,20 +799,30 @@ st.caption(
     " Feed](https://stockcharts.com/sc3/ui/?s=$nyad)"
 )
 
-ad_dates = pd.date_range(end=today_dt, periods=170, freq="B") # ~8 calendar months (170 trading days)
-np.random.seed(42)
+# --- CONNECT REAL LIVE YAHOO FINANCE DATA FOR TRADING VEHICLES ---
+# Fallback to simulation ONLY if the live API data frame returns completely empty
+use_live_data = False
+if hist_data is not None and "^NYAD" in hist_data and "^GSPC" in hist_data:
+  # Extract true closing prints and clean up mismatched dates
+  live_df = pd.DataFrame({
+      "NYAD": hist_data["^NYAD"]["Close"],
+      "SPX": hist_data["^GSPC"]["Close"]
+  }).dropna().tail(170) # Fetch the last ~8 calendar months of organic records
+  
+  if len(live_df) > 10:
+    ad_dates = live_df.index
+    ad_sim = live_df["NYAD"].tolist()
+    sp_sim = live_df["SPX"].tolist()
+    use_live_data = True
 
-# Generate raw mock tracking sequences
-sp_sim = 5500 + np.cumsum(np.random.randn(170) * 12 + 2)
-raw_ad_sim = np.cumsum(np.random.randn(170) * 350 + 150)
-raw_ad_sim[-30:] = raw_ad_sim[-30:] - np.arange(30) * 40 # Simulates recent divergence leg
-
-# --- DATA SOURCE CALIBRATION CONTEXT ---
-# Aligning cumulative sequence drift to match the absolute endpoint threshold from StockCharts
-target_today_nyad = 12002.00
-calibration_offset = target_today_nyad - raw_ad_sim[-1]
-ad_sim = raw_ad_sim + calibration_offset  # Shifts the entire curve to land exactly at 12,002 today
-# ---------------------------------------
+if not use_live_data:
+  # Safe backup simulation loop in case of internet connection dropouts
+  ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
+  np.random.seed(42)
+  sp_sim = 5500 + np.cumsum(np.random.randn(170) * 15 + 1).tolist()
+  # Use sine waves to simulate a more natural, organic volatility for backup data
+  t = np.linspace(0, 4 * np.pi, 170)
+  ad_sim = (11500 + np.sin(t) * 400 + np.cumsum(np.random.randn(170) * 180)).tolist()
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: S&P 500 is testing recent swing highs, but"
@@ -903,7 +913,6 @@ if HAS_PLOTLY:
   )
 
   st.plotly_chart(fig_ad, use_container_width=True)
-
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
