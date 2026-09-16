@@ -307,7 +307,8 @@ def generate_sample_breadth_data():
       }
   }
 
-  url = "https://wsj.com"
+ url = "https://wsj.com"
+
   headers = {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
   }
@@ -407,8 +408,8 @@ def generate_sample_breadth_data():
               "local_fetch_time": datetime.datetime.now().strftime("%X")
           }
       }
-  except:
-    pass
+  except Exception as e:
+    st.sidebar.error(f"Scraper Error: {e}")
   return fallback_data
 
 # 60-Day Trend Chart Renderer displaying ONLY and EXACTLY the defined limits
