@@ -287,7 +287,7 @@ def compute_ma(series, period, ma_type="EMA"):
 
 @st.cache_data(ttl=900) # Caches the data for 15 minutes to avoid spamming the servers
 def generate_sample_breadth_data():
-  # Set up fallback data matching your template baseline snapshot
+  # Setup fallback data matching your template baseline snapshot
   fallback_data = {
       "nyse": {
           "adv_stocks_pct": 34.5, "dec_stocks_pct": 63.9, "unch_stocks_pct": 1.7,
@@ -300,6 +300,10 @@ def generate_sample_breadth_data():
           "adv_vol_pct": 37.1, "dec_vol_pct": 62.2, "unch_vol_pct": 0.8,
           "new_highs": 35, "new_lows": 232, "net_highs": -197,
           "advancing_stocks": 949, "declining_stocks": 2082, "unchanged_stocks": 85
+      },
+      "meta": {
+          "wsj_timestamp": "Connection Offline (Using Cache Baseline)",
+          "local_fetch_time": datetime.datetime.now().strftime("%X")
       }
   }
 
@@ -311,22 +315,31 @@ def generate_sample_breadth_data():
   try:
     r = requests.get(url, headers=headers, timeout=8)
     if r.status_code == 200:
-      # Parse the underlying raw HTML text block
       html_text = r.text
       
+      # --- NEW DYNAMIC TIMESTAMP SCRAPER TRACK ---
+      wsj_time = "Unknown Market Close"
+      time_idx = html_text.find("As of")
+      if time_idx != -1:
+        # Extract the short date phrase contained inside the data header string text
+        raw_time_phrase = html_text[time_idx:time_idx+40]
+        end_idx = raw_time_phrase.find("<")
+        if end_idx != -1:
+          wsj_time = raw_time_phrase[:end_idx].replace("As of ", "").strip()
+        else:
+          wsj_time = raw_time_phrase.replace("As of ", "").strip()
+      # --------------------------------------------
+
       # Helper sub-parser to extract raw integers cleanly from the WSJ layout strings
       def find_wsj_metric(html, section_key, metric_key, default):
         try:
-          # Isolate search context to either the NYSE or NASDAQ data block
           sec_start = html.find(section_key)
           if sec_start == -1: return default
           sub_html = html[sec_start:sec_start+4000]
           
-          # Find the specific row key (e.g., 'Advancing', 'New Highs')
           key_pos = sub_html.find(metric_key)
           if key_pos == -1: return default
           
-          # Scan forward to isolate the numeric string between HTML elements
           num_str = ""
           start_capture = False
           for char in sub_html[key_pos+len(metric_key):key_pos+200]:
@@ -334,41 +347,35 @@ def generate_sample_breadth_data():
               start_capture = True
               num_str += char
             elif start_capture and char in [",", " ", "<", '"', "\n", "}", ":"]:
-              if char == ",": continue # Skip commas
+              if char == ",": continue
               break
           return int(num_str) if num_str else default
         except:
           return default
 
-      # --- 1. PARSE NYSE METRICS LIVE ---
+      # Parse NYSE Metrics Live
       n_adv = find_wsj_metric(html_text, "Daily Stock Activity", "Advancing:", 646)
       n_dec = find_wsj_metric(html_text, "Daily Stock Activity", "Declining:", 1197)
       n_unch = find_wsj_metric(html_text, "Daily Stock Activity", "Unchanged:", 31)
-      
       n_adv_v = find_wsj_metric(html_text, "Daily Stock Activity", "Advancing Vol:", 1836460000)
       n_dec_v = find_wsj_metric(html_text, "Daily Stock Activity", "Declining Vol:", 3172140000)
       n_unch_v = find_wsj_metric(html_text, "Daily Stock Activity", "Unchanged Vol:", 3736000)
-      
       n_nh = find_wsj_metric(html_text, "Daily Stock Activity", "New 52 Week Highs", 54)
       n_nl = find_wsj_metric(html_text, "Daily Stock Activity", "New 52 Week Lows", 100)
 
-      # --- 2. PARSE NASDAQ METRICS LIVE ---
-      # Slide context forward to isolate the separate NASDAQ data container row
+      # Parse NASDAQ Metrics Live
       nas_start = html_text.find("Daily Stock Activity")
       nas_sub_html = html_text[nas_start+2000:] if nas_start != -1 else html_text
-      
       m_adv = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "Advancing:", 949)
       m_dec = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "Declining:", 2082)
       m_unch = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "Unchanged:", 85)
-      
       m_adv_v = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "Advancing Vol:", 2596010000)
       m_dec_v = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "Declining Vol:", 4355600000)
       m_unch_v = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "Unchanged Vol:", 54350000)
-      
       m_nh = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "New 52 Week Highs", 35)
       m_nl = find_wsj_metric(nas_sub_html, "Daily Stock Activity", "New 52 Week Lows", 232)
 
-      # --- 3. EXECUTE CALIBRATION MATH ---
+      # Execute Calibration Math
       nyse_total_s = n_adv + n_dec + n_unch
       nyse_total_v = n_adv_v + n_dec_v + n_unch_v
       nasdaq_total_s = m_adv + m_dec + m_unch
@@ -394,6 +401,10 @@ def generate_sample_breadth_data():
               "unch_vol_pct": round((m_unch_v / nasdaq_total_v) * 100, 1) if nasdaq_total_v > 0 else 0.8,
               "new_highs": m_nh, "new_lows": m_nl, "net_highs": m_nh - m_nl,
               "advancing_stocks": m_adv, "declining_stocks": m_dec, "unchanged_stocks": m_unch
+          },
+          "meta": {
+              "wsj_timestamp": wsj_time,
+              "local_fetch_time": datetime.datetime.now().strftime("%X")
           }
       }
   except:
@@ -1055,31 +1066,35 @@ if HAS_PLOTLY:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# SECTION 4: Volume Dynamics & 52-Week Highs / Lows (UNIFIED TRAFFIC LIGHTS)
+# SECTION 4: Volume Dynamics & 52-Week Highs / Lows (TIMESTAMP MATRIX)
 # ---------------------------------------------------------
 st.subheader("4. Volume Dynamics & 52-Week Highs / Lows (NYSE & NASDAQ)")
+
+nyse_data = breadth_data["nyse"]
+nasdaq_data = breadth_data["nasdaq"]
+meta_data = breadth_data["meta"]
+
+# Display live verification timestamps right beneath the row header banner
+st.markdown(
+    f"⏱️ **WSJ Source Data Time:** `{meta_data['wsj_timestamp']}` | 🔄 **Last"
+    f" Dashboard Sync:** `{meta_data['local_fetch_time']}`"
+)
 st.caption("Synchronized Market Metrics representing both Issues & Shares in standardized percentages.")
 
 col_nyse, col_nasdaq = st.columns(2)
 
-nyse_data = breadth_data["nyse"]
-nasdaq_data = breadth_data["nasdaq"]
-
-# Dynamic badge generation to shift colors automatically based on market momentum
 nyse_badge_style = "badge-green" if nyse_data["net_highs"] >= 0 else "badge-red"
 nasdaq_badge_style = "badge-green" if nasdaq_data["net_highs"] >= 0 else "badge-red"
 
 with col_nyse:
   st.markdown("#### 🏛️ NYSE Breadth & Volume")
   
-  # Row 1: Unified Shares (Volume) percentages
   st.markdown("##### **Shares Momentum (Volume %)**")
   sv1, sv2, sp3 = st.columns(3)
-  sv1.metric("9🟢 Advancing Vol", f"{nyse_data['adv_vol_pct']}%")
+  sv1.metric("🟢 Advancing Vol", f"{nyse_data['adv_vol_pct']}%")
   sv2.metric("🔴 Declining Vol", f"{nyse_data['dec_vol_pct']}%")
   sp3.metric("⚪ Unchanged Vol", f"{nyse_data['unch_vol_pct']}%")
   
-  # Row 2: Unified Issues (Companies) percentages
   st.markdown("##### **Issues Momentum (Companies %)**")
   si1, si2, si3 = st.columns(3)
   si1.metric("🟢 Advancing Issues", f"{nyse_data['adv_stocks_pct']}%")
@@ -1099,14 +1114,12 @@ with col_nyse:
 with col_nasdaq:
   st.markdown("#### 💻 NASDAQ Breadth & Volume")
   
-  # Row 1: Unified Shares (Volume) percentages
   st.markdown("##### **Shares Momentum (Volume %)**")
   sv1, sv2, sp3 = st.columns(3)
   sv1.metric("🟢 Advancing Vol", f"{nasdaq_data['adv_vol_pct']}%")
   sv2.metric("🔴 Declining Vol", f"{nasdaq_data['dec_vol_pct']}%")
   sp3.metric("⚪ Unchanged Vol", f"{nasdaq_data['unch_vol_pct']}%")
   
-  # Row 2: Unified Issues (Companies) percentages
   st.markdown("##### **Issues Momentum (Companies %)**")
   si1, si2, si3 = st.columns(3)
   si1.metric("🟢 Advancing Issues", f"{nasdaq_data['adv_stocks_pct']}%")
