@@ -931,7 +931,7 @@ if HAS_PLOTLY:
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=, # HARD BOUNDARIES MATCHING STOCKCHARTS LEFT AXIS FRAME
+      range=[5000, 19000], # Fixed the syntax typo here
       dtick=1000,
       showgrid=True,
       gridcolor="#e2e8f0",
