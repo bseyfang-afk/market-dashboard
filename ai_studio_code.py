@@ -60,7 +60,7 @@ st.markdown(
     }
     .metric-sub {
         font-size: 0.72rem;
-        color: #64748b;
+        color: #ffffff;
         margin-top: 3px;
     }
     .badge-green {
