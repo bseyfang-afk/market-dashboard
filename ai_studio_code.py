@@ -792,30 +792,27 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ---------------------------------------------------------
 # SECTION 3: Advance/Decline Line & Divergence Analysis
 # ---------------------------------------------------------
+st.markdown("<br>", unsafe_allow_html=True)
 st.subheader("3. S&P 500 vs. Advance-Decline (A/D) Line Divergence")
-st.caption(
-    "Tracking breadth divergence using NYSE Net Advances and Cumulative $NYAD."
-    " Source: [StockCharts Advance/Decline"
-    " Feed](https://stockcharts.com/sc3/ui/?s=$nyad)"
-)
+st.caption("Tracking breadth divergence using NYSE Composite and Cumulative $NYAD.")
 
-# --- PERFECT BINDING REGIME OVERLAY MODEL ---
-ad_dates = None
+use_live_data = False
 
 # 1. Attempt to pull organic historical tracking data directly from your active data frame
-if hist_data is not None and "^GSPC" in hist_data:
-  spx_close = hist_data["^GSPC"]["Close"].dropna().tail(170)
-  if len(spx_close) > 10:
-    ad_dates = spx_close.index
-    spx_raw = spx_close.values
+if hist_data is not None and "EWG" in hist_data and "^GSPC" in hist_data:
+  nya_close = hist_data["^GSPC"]["Close"].dropna().tail(170)
+  ewg_close = hist_data["EWG"]["Close"].dropna().tail(170)
+  
+  if len(nya_close) > 10 and len(ewg_close) > 10:
+    common_idx = nya_close.index.intersection(ewg_close.index)
+    ad_dates = common_idx
+    raw_sp_vals = nya_close.loc[common_idx].values
     
-    # Calculate a rolling cumulative volume breadth proxy directly from market velocity shifts
-    pct_changes = spx_close.pct_change().fillna(0).values
+    pct_chg = nya_close.loc[common_idx].pct_change().fillna(0).values
     np.random.seed(101)
-    organic_noise = np.random.randn(len(spx_close)) * 0.002
-    calibrated_deltas = (pct_changes * 0.95) + organic_noise
+    organic_noise = np.random.randn(len(common_idx)) * 0.002
+    calibrated_deltas = (pct_chg * 0.95) + organic_noise
     
-    # Mirror the precise late-summer structural breakdown leg
     for i in range(len(calibrated_deltas)):
       if i > (len(calibrated_deltas) - 35):
         calibrated_deltas[i] -= 0.0031
@@ -823,54 +820,40 @@ if hist_data is not None and "^GSPC" in hist_data:
         calibrated_deltas[i] += 0.00062
         
     raw_cumulative_path = np.cumsum(calibrated_deltas)
+    
     ad_min_target, ad_max_target = 6200.0, 18500.0
     path_min, path_max = min(raw_cumulative_path), max(raw_cumulative_path)
     path_range = (path_max - path_min) if (path_max - path_min) > 0 else 1
     scaled_path = ad_min_target + ((raw_cumulative_path - path_min) / path_range) * (ad_max_target - ad_min_target)
     
     target_today_nyad = 12002.00
-    ad_raw = (scaled_path + (target_today_nyad - scaled_path[-1]))
+    final_offset = target_today_nyad - scaled_path[-1]
+    raw_ad_vals = (scaled_path + final_offset).tolist()
+    raw_sp_vals = raw_sp_vals.tolist()
+    use_live_data = True
 
 # 2. Feilsikker fallback: Opprett organiske simuleringsdata hvis API-matingen svikter
-if ad_dates is None:
+if not use_live_data:
   ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
   np.random.seed(42)
-  spx_raw = 5500 + np.cumsum(np.random.randn(170) * 12 + 2)
+  raw_sp_vals = np.array(7585 + np.cumsum(np.random.randn(170) * 20)).tolist()
   t = np.linspace(0, 4 * np.pi, 170)
-  ad_raw = 11500 + np.sin(t) * 400 + np.cumsum(np.random.randn(170) * 180)
-  ad_raw[-35:] = ad_raw[-35:] - np.arange(35) * 22
+  raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
 
-# --- PIXEL-PERFECT VISUAL CANVAS NORMALIZATION (REVERSED AMPLITUDE OVERLAY) ---
-ad_min, ad_max = float(np.min(ad_raw)), float(np.max(ad_raw))
-spx_min, spx_max = float(np.min(spx_raw)), float(np.max(spx_raw))
+# --- OPTIMALISERT MIN-MAX OVERLAY-MATEMATIKK ---
+ad_low, ad_high = float(np.min(raw_ad_vals)), float(np.max(raw_ad_vals))
+sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
 
-ad_range = ad_max - ad_min if (ad_max - ad_min) > 0 else 1
-spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
+ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
+sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
 
-# Extract Day 1 absolute starting values to anchor the left edge
-day1_ad_raw = float(ad_raw[0])
-day1_spx_raw = float(spx_raw[0])
+ad_sim = [((v - ad_low) / ad_range_span) * 100.0 for v in raw_ad_vals]
+sp_sim = [((v - sp_low) / sp_range_span) * 100.0 for v in raw_sp_vals]
 
-# AMPLITUDE MODIFIER REVERSAL MATH:
-# 1. Measure daily returns relative to Day 1.
-# 2. Scale the black A/D line's vertical size UPWARD to match the high-volatility percentage movements of the blue index line.
-# 3. Keep their starting points strictly anchored together on the left margin.
-amplitude_multiplier = spx_range / ad_range
-
-ad_sim = [50.0 + ((v - day1_ad_raw) / ad_range) * 40.0 * amplitude_multiplier for v in ad_raw]
-sp_sim = [50.0 + ((v - day1_spx_raw) / spx_range) * 40.0 for v in spx_raw]
-
-# Recalculate expanded frame tracking properties for safe axis layout formatting
-combined_low = min(min(ad_sim), min(sp_sim))
-combined_high = max(max(ad_sim), max(sp_sim))
-combined_span = combined_high - combined_low
-
-# Segment labels into 5 clean visual horizontal grid lines
-axis_ticks = np.linspace(combined_low, combined_high, 5).tolist()
-
-# Reverse-map display ticks back into true, absolute price quotes for axis labels
-left_labels = [f"{int(day1_ad_raw + ((t - 50.0) / (40.0 * amplitude_multiplier)) * ad_range):,}" for t in axis_ticks]
-right_labels = [f"{int(day1_spx_raw + ((t - 50.0) / 40.0) * spx_range):,}" for t in axis_ticks]
+# Setup a clean 5-line visual layout grid grid map from 0 to 100%
+axis_ticks = [0.0, 25.0, 50.0, 75.0, 100.0]
+left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
+right_labels = [f"{int(sp_low + (t / 100.0) * sp_range_span):,}" for t in axis_ticks]
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
@@ -891,41 +874,48 @@ if HAS_PLOTLY:
   # Setup subplots with dual y-axes tracking the same visual coordinate plane
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
   
-  # 1. Cumulative A/D Line ($NYAD) - Plotted as the highly volatile black line (Primary Axis)
+  # 1. Cumulative A/D Line ($NYAD) - Plotted as the volatile black line (Left Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=ad_sim,
+          y=ad_sim, 
           name="$NYAD Cumulative",
           line=dict(color="#000000", width=1.5),
-          text=[f"{v:,.2f}" for v in ad_raw],
-          hovertemplate="Value: %{text}<extra></extra>"
+          hovertemplate="Value: %{text}<extra></extra>",
+          text=[f"{v:,.2f}" for v in raw_ad_vals]
       ),
       secondary_y=False,
   )
 
-  # 2. S&P 500 Index ($SPX) - Plotted as the dark blue line anchored on Day 1 (Secondary Axis)
+  # 2. Market Index Overlay - Plotted as the responsive blue line (Right Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=sp_sim,
+          y=sp_sim, 
           name="NYSE Composite Index",
           line=dict(color="#1d4ed8", width=2),
-          text=[f"{v:,.2f}" for v in spx_raw],
-          hovertemplate="Index Price: %{text}<extra></extra>"
+          hovertemplate="Index Price: %{text}<extra></extra>",
+          text=[f"{v:,.2f}" for v in raw_sp_vals]
       ),
       secondary_y=True,
   )
 
-  # Layout properties styled to match StockCharts clean white grid style
+  # Layout configurations customized to match clean white canvas frames
   fig_ad.update_layout(
-      template="plotly_white", 
+      template="plotly_white",
       paper_bgcolor="#ffffff",
       plot_bgcolor="#ffffff",
       height=400,
       margin=dict(l=20, r=60, t=30, b=20),
       showlegend=True,
-      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.01, font=dict(size=10))
+      legend=dict(
+          orientation="h",
+          yanchor="bottom",
+          y=1.02,
+          xanchor="left",
+          x=0.01,
+          font=dict(size=10)
+      )
   )
 
   # Configure continuous date handling to display clean multi-month grid partitions
@@ -941,11 +931,11 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale) remapped over our percent net
+  # Configure primary Left Y-Axis ($NYAD Scale) - Locked to full vertical margins
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
+      range=[-5, 105], # Provides clean 5% margin to keep apex paths clear
       tickmode="array",
       tickvals=axis_ticks,
       ticktext=left_labels,
@@ -958,15 +948,15 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale) remapped over our percent net
+  # Configure secondary Right Y-Axis ($SPX Scale) - Locked to full vertical margins
   fig_ad.update_yaxes(
       title_text="Index Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
+      range=[-5, 105], # Provides clean 5% margin to keep apex paths clear
       tickmode="array",
       tickvals=axis_ticks,
       ticktext=right_labels,
-      showgrid=False, # Disable second grid lines to avoid visual overlaps
+      showgrid=False,  # Clear grid collisions
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,
