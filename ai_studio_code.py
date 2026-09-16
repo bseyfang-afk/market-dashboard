@@ -840,26 +840,25 @@ if ad_dates is None:
   ad_raw = 11500 + np.sin(t) * 400 + np.cumsum(np.random.randn(170) * 180)
   ad_raw[-35:] = ad_raw[-35:] - np.arange(35) * 22
 
-# --- PIXEL-PERFECT VISUAL CANVAS NORMALIZATION ---
+# --- PIXEL-PERFECT VISUAL CANVAS NORMALIZATION (COMBINED MATCH) ---
 ad_min, ad_max = float(np.min(ad_raw)), float(np.max(ad_raw))
 spx_min, spx_max = float(np.min(spx_raw)), float(np.max(spx_raw))
 
 ad_range = ad_max - ad_min if (ad_max - ad_min) > 0 else 1
 spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
 
-# Maximize vertical visual scaling (0% to 100%) so both curves utilize the full canvas space
-ad_norm = ((ad_raw - ad_min) / ad_range) * 100.0
-spx_norm = ((spx_raw - spx_min) / spx_range) * 100.0
+# Extract Day 1 absolute starting values to anchor the left edge
+day1_ad_raw = float(ad_raw)
+day1_spx_raw = float(spx_raw)
 
-# Fixed the TypeError: Extract the Day 1 starting position using explicit [0] index brackets
-day1_ad_pct = float(ad_norm[0])
-day1_spx_pct = float(spx_norm[0])
+# AMPLITUDE MODIFIER MATH: 
+# 1. Measure daily returns relative to Day 1.
+# 2. Scale the blue line's vertical size so its highest peak matches the height of the black line.
+# 3. Keep their starting points strictly anchored together on the left margin.
+amplitude_multiplier = ad_range / spx_range
 
-# CRITICAL OVERLAY ADJUSTMENT: Shift the blue index line vertically 
-# so its Day 1 point matches the black line perfectly on the left margin
-day1_visual_offset = day1_ad_pct - day1_spx_pct
-ad_sim = ad_norm.tolist()
-sp_sim = (spx_norm + day1_visual_offset).tolist()
+ad_sim = [50.0 + ((v - day1_ad_raw) / ad_range) * 40.0 for v in ad_raw]
+sp_sim = [50.0 + ((v - day1_spx_raw) / spx_range) * 40.0 * amplitude_multiplier for v in spx_raw]
 
 # Recalculate expanded frame tracking properties for safe axis layout formatting
 combined_low = min(min(ad_sim), min(sp_sim))
@@ -869,9 +868,9 @@ combined_span = combined_high - combined_low
 # Segment labels into 5 clean visual horizontal grid lines
 axis_ticks = np.linspace(combined_low, combined_high, 5).tolist()
 
-# Map re-indexed axis ticks back into absolute price levels for clear label printing
-left_labels = [f"{int(ad_min + (t / 100.0) * ad_range):,}" for t in axis_ticks]
-right_labels = [f"{int(spx_min + ((t - day1_visual_offset) / 100.0) * spx_range):,}" for t in axis_ticks]
+# Reverse-map display ticks back into true, absolute price quotes for axis labels
+left_labels = [f"{int(day1_ad_raw + ((t - 50.0) / 40.0) * ad_range):,}" for t in axis_ticks]
+right_labels = [f"{int(day1_spx_raw + ((t - 50.0) / (40.0 * amplitude_multiplier)) * spx_range):,}" for t in axis_ticks]
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
