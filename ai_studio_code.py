@@ -859,7 +859,7 @@ ad_sim = ((raw_ad_vals - ad_low) / ad_range_span) * 100.0
 sp_sim = ((raw_sp_vals - sp_low) / sp_range_span) * 100.0
 
 # Opprett 5 jevnt fordelte referansepunkter på rutenettet
-axis_ticks = 
+axis_ticks = [0, 25, 50, 75, 100] # Fixed the SyntaxError here
 left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
 right_labels = [f"{int(sp_low + (t / 100.0) * sp_range_span):,}" for t in axis_ticks]
 # ------------------------------------------------------------------------
