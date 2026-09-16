@@ -891,26 +891,35 @@ if HAS_PLOTLY:
       tickformat="%b %y", # Labels ticks cleanly as Month-Year abbreviations (e.g. 'Jan 26')
       showgrid=True,
       gridcolor="#e2e8f0",
-      tickfont=dict(color="#475569", size=10)
+      tickfont=dict(color="#475569", size=10),
+      mirror=True,       # Enforces a complete box frame around the canvas
+      linewidth=1,
+      linecolor="#cbd5e1"
   )
 
   # Configure primary Left Y-Axis ($NYAD Scale - matching the black data line)
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      showgrid=True,
+      showgrid=True,     # Keep left axis grid lines active as the dominant guide grid
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
-      secondary_y=False
+      secondary_y=False,
+      mirror=True,       # Enforces a complete box frame around the canvas
+      linewidth=1,
+      linecolor="#cbd5e1"
   )
 
   # Configure secondary Right Y-Axis ($SPX Scale - matching the blue data line)
   fig_ad.update_yaxes(
       title_text="$SPX Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      showgrid=False, # Disable second grid lines to avoid visual overlaps
+      showgrid=False,    # Strict rule: disable right axis grid to clear dual interference
       tickfont=dict(color="#475569", size=10),
-      secondary_y=True
+      secondary_y=True,
+      mirror=True,       # Enforces a complete box frame around the canvas
+      linewidth=1,
+      linecolor="#cbd5e1"
   )
 
   st.plotly_chart(fig_ad, use_container_width=True)
