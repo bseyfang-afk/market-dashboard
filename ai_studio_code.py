@@ -333,14 +333,14 @@ def render_60d_chart(
   if HAS_PLOTLY:
     fig = go.Figure()
 
-    # Method 1: Continuous solid Red line @ 80 and solid Green line @ 20 for Fear & Greed
+    # Method 1: Thin crisp solid Red line @ 80 and Green line @ 20 for Fear & Greed
     if y_range == [0, 100]:
       fig.add_trace(
           go.Scatter(
               x=dates_labels,
               y=[80] * len(dates_labels),
               mode="lines",
-              line=dict(color="#ef4444", width=1.5, dash="dash"),
+              line=dict(color="#ef4444", width=1.2),
               hoverinfo="skip",
               showlegend=False,
           )
@@ -350,7 +350,7 @@ def render_60d_chart(
               x=dates_labels,
               y=[20] * len(dates_labels),
               mode="lines",
-              line=dict(color="#22c55e", width=1.5, dash="dash"),
+              line=dict(color="#22c55e", width=1.2),
               hoverinfo="skip",
               showlegend=False,
           )
@@ -444,7 +444,7 @@ st.subheader(
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# 1. Fear & Greed Card (Method 1: Solid Red @ 80, Solid Green @ 20, Limits: 0 to 100)
+# 1. Fear & Greed Card (Method 1: Thin Red @ 80, Thin Green @ 20, Limits: 0 to 100)
 with col1:
   fg_score = fg_data["score"]
   fg_rating = fg_data["rating"]
@@ -476,7 +476,7 @@ with col1:
   render_60d_chart(
       dates_60d_str,
       fg_60d,
-      "#000000",
+      "#f87171",
       y_range=[0, 100],
       baseline=50.0,
       baseline_label="Neutral 50",
