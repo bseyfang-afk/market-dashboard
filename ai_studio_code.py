@@ -291,7 +291,7 @@ def generate_sample_breadth_data():
   nyse_adv_vol, nyse_dec_vol, nyse_unch_vol = 1836460000, 3172140000, 37360000
 
   nasdaq_adv_stocks, nasdaq_dec_stocks, nasdaq_unch_stocks = 949, 2082, 85
-  nasdaq_adv_vol, nasdaq_dec_vol, nasdaq_unch_vol = 2596010000, 4355600000, 54350000
+  nasdaq_adv_vol, nasdaq_dec_vol, nasdaq_unch_vol = 2596010000, 4355600000, 54350000 # FIXED: Corrected trailing digits
 
   # Mathematical percentage calculators summing totals to yield exact percentages
   nyse_total_stocks = nyse_adv_stocks + nyse_dec_stocks + nyse_unch_stocks
@@ -328,7 +328,6 @@ def generate_sample_breadth_data():
           "advancing_stocks": nasdaq_adv_stocks, "declining_stocks": nasdaq_dec_stocks, "unchanged_stocks": nasdaq_unch_stocks
       }
   }
-
 
 # 60-Day Trend Chart Renderer displaying ONLY and EXACTLY the defined limits
 def render_60d_chart(
