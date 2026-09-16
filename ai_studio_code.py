@@ -294,14 +294,14 @@ def generate_sample_breadth_data():
           "adv_stocks_pct": "N/A", "dec_stocks_pct": "N/A", "unch_stocks_pct": "N/A",
           "new_highs": "N/A", "new_lows": "N/A", "net_highs": 0,
           "advancing_stocks": "N/A", "declining_stocks": "N/A", "unchanged_stocks": "N/A",
-          "is_offline": True # Signal variable to turn off traffic lights
+          "is_offline": True
       },
       "nasdaq": {
           "adv_vol_pct": "N/A", "dec_vol_pct": "N/A", "unch_vol_pct": "N/A",
           "adv_stocks_pct": "N/A", "dec_stocks_pct": "N/A", "unch_stocks_pct": "N/A",
           "new_highs": "N/A", "new_lows": "N/A", "net_highs": 0,
           "advancing_stocks": "N/A", "declining_stocks": "N/A", "unchanged_stocks": "N/A",
-          "is_offline": True # Signal variable to turn off traffic lights
+          "is_offline": True
       },
       "meta": {
           "wsj_timestamp": "Offline (Connection Failed)",
@@ -309,39 +309,47 @@ def generate_sample_breadth_data():
       }
   }
 
-  # Query the public CBOE/Barchart unified analytics endpoint directly
   try:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     r = requests.get("https://cboe.com", headers=headers, timeout=8)
     
     if r.status_code == 200:
-      api_data = r.json()
+      raw_json = r.json()
       
+      # FIXED LAYER: Extract the data dictionary nested inside CBOE's master JSON response payload
+      api_data = raw_json.get("data", raw_json) if isinstance(raw_json, dict) else {}
+      if not api_data:
+        return fallback_data
+        
       # Extract real-time absolute numbers for the NYSE Exchange
-      n_adv = int(api_data.get("nyse_advancing_issues"))
-      n_dec = int(api_data.get("nyse_declining_issues"))
-      n_unch = int(api_data.get("nyse_unchanged_issues"))
-      n_adv_v = int(api_data.get("nyse_advancing_volume"))
-      n_dec_v = int(api_data.get("nyse_declining_volume"))
-      n_unch_v = int(api_data.get("nyse_unchanged_volume"))
-      n_nh = int(api_data.get("nyse_new_highs"))
-      n_nl = int(api_data.get("nyse_new_lows"))
+      n_adv = int(api_data.get("nyse_advancing_issues", 0))
+      n_dec = int(api_data.get("nyse_declining_issues", 0))
+      n_unch = int(api_data.get("nyse_unchanged_issues", 0))
+      n_adv_v = int(api_data.get("nyse_advancing_volume", 0))
+      n_dec_v = int(api_data.get("nyse_declining_volume", 0))
+      n_unch_v = int(api_data.get("nyse_unchanged_volume", 0))
+      n_nh = int(api_data.get("nyse_new_highs", 0))
+      n_nl = int(api_data.get("nyse_new_lows", 0))
 
       # Extract real-time absolute numbers for the NASDAQ Exchange
-      m_adv = int(api_data.get("nasdaq_advancing_issues"))
-      m_dec = int(api_data.get("nasdaq_declining_issues"))
-      m_unch = int(api_data.get("nasdaq_unchanged_issues"))
-      m_adv_v = int(api_data.get("nasdaq_advancing_volume"))
-      m_dec_v = int(api_data.get("nasdaq_declining_volume"))
-      m_unch_v = int(api_data.get("nasdaq_unchanged_volume"))
-      m_nh = int(api_data.get("nasdaq_new_highs"))
-      m_nl = int(api_data.get("nasdaq_new_lows"))
+      m_adv = int(api_data.get("nasdaq_advancing_issues", 0))
+      m_dec = int(api_data.get("nasdaq_declining_issues", 0))
+      m_unch = int(api_data.get("nasdaq_unchanged_issues", 0))
+      m_adv_v = int(api_data.get("nasdaq_advancing_volume", 0))
+      m_dec_v = int(api_data.get("nasdaq_declining_volume", 0))
+      m_unch_v = int(api_data.get("nasdaq_unchanged_volume", 0))
+      m_nh = int(api_data.get("nasdaq_new_highs", 0))
+      m_nl = int(api_data.get("nasdaq_new_lows", 0))
 
       # Run exact percentage total calculations
       nyse_tot_s = n_adv + n_dec + n_unch
       nyse_tot_v = n_adv_v + n_dec_v + n_unch_v
       nas_tot_s = m_adv + m_dec + m_unch
       nas_tot_v = m_adv_v + m_dec_v + m_unch_v
+
+      # Double-check that we aren't dividing by zero if the market hasn't opened yet
+      if nyse_tot_s == 0 or nas_tot_s == 0:
+        return fallback_data
 
       return {
           "nyse": {
