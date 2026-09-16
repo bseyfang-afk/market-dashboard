@@ -896,8 +896,6 @@ if HAS_PLOTLY:
   st.plotly_chart(fig_ad, use_container_width=True)
 
 
-st.markdown("<br>", unsafe_allow_html=True)
-
 # ---------------------------------------------------------
 # SECTION 4: Volume Dynamics & 52-Week Highs / Lows
 # ---------------------------------------------------------
