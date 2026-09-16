@@ -846,34 +846,13 @@ if HAS_PLOTLY:
       secondary_y=True,
   )
 
-  # Layout properties simplified to avoid version-specific property crashes
+  # Set general global chart background styling parameters
   fig_ad.update_layout(
       template="plotly_white", # Bright white background theme
       paper_bgcolor="#ffffff",
       plot_bgcolor="#ffffff",
       height=400,
       margin=dict(l=20, r=60, t=30, b=20),
-      xaxis=dict(
-          showgrid=True,
-          gridcolor="#e2e8f0",
-          tickfont=dict(color="#475569", size=10)
-      ),
-      yaxis=dict(
-          title="$NYAD Cumulative Scale",
-          titlefont=dict(color="#1d4ed8", size=11),
-          showgrid=True,
-          gridcolor="#e2e8f0",
-          tickfont=dict(color="#475569", size=10),
-          side="left"
-      ),
-      yaxis2=dict(
-          title="$SPX Price Scale",
-          titlefont=dict(color="#1e293b", size=11),
-          showgrid=False, # Disable second grid lines to avoid visual overlaps
-          tickfont=dict(color="#475569", size=10),
-          side="right",
-          overlaying="y"
-      ),
       showlegend=True,
       legend=dict(
           orientation="h",
@@ -884,8 +863,34 @@ if HAS_PLOTLY:
           font=dict(size=10)
       )
   )
-  st.plotly_chart(fig_ad, use_container_width=True)
 
+  # Explicit axis formatting updates to guarantee stability across versions
+  fig_ad.update_xaxes(
+      showgrid=True,
+      gridcolor="#e2e8f0",
+      tickfont=dict(color="#475569", size=10)
+  )
+
+  # Configure primary Left Y-Axis ($NYAD Scale)
+  fig_ad.update_yaxes(
+      title_text="$NYAD Cumulative Scale",
+      title_font=dict(color="#1d4ed8", size=11),
+      showgrid=True,
+      gridcolor="#e2e8f0",
+      tickfont=dict(color="#475569", size=10),
+      secondary_y=False
+  )
+
+  # Configure secondary Right Y-Axis ($SPX Scale)
+  fig_ad.update_yaxes(
+      title_text="$SPX Price Scale",
+      title_font=dict(color="#1e293b", size=11),
+      showgrid=False, # Disable second grid lines to avoid visual overlaps
+      tickfont=dict(color="#475569", size=10),
+      secondary_y=True
+  )
+
+  st.plotly_chart(fig_ad, use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
