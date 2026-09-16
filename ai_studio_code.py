@@ -843,28 +843,18 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
 
-# --- DAY 1 VISUAL BASELINE SYNC (FIXED SCALING MATH) ---
-sp_min_val, sp_max_val = float(np.min(raw_sp)), float(np.max(raw_sp))
-sp_range = (sp_max_val - sp_min_val) if (sp_max_val - sp_min_val) > 0 else 1
-
+# --- COORDINATED DUAL-AXIS BOUNDING BOXES (CRASH-PROOF METHOD) ---
+# Find individual minimums and maximums across both raw datasets
 ad_min_val, ad_max_val = float(np.min(raw_ad)), float(np.max(raw_ad))
-ad_range = (ad_max_val - ad_min_val) if (ad_max_val - ad_min_val) > 0 else 1
+sp_min_val, sp_max_val = float(np.min(raw_sp)), float(np.max(raw_sp))
 
-# Fixed the calculation math error: correctly shift index steps relative to its Day 1 start price
-scaled_sp_line = raw_ad[0] + ((raw_sp - raw_sp[0]) / sp_range) * ad_range * 0.85
+ad_range_val = ad_max_val - ad_min_val if (ad_max_val - ad_min_val) > 0 else 1
+sp_range_val = sp_max_val - sp_min_val if (sp_max_val - sp_min_val) > 0 else 1
 
-# Recalculate strict unified chart axis window boundaries with clean 5% edge padding
-final_combined_min = min(min(raw_ad), min(scaled_sp_line))
-final_combined_max = max(max(raw_ad), max(scaled_sp_line))
-final_combined_range = final_combined_max - final_combined_min
-
-ad_limits = [final_combined_min - (final_combined_range * 0.05), final_combined_max + (final_combined_range * 0.05)]
-
-# Map the right axis price boundaries dynamically to preserve true quote scaling data
-right_axis_min = raw_sp[0] + ((ad_limits[0] - raw_ad[0]) / (ad_range * 0.85)) * sp_range
-right_axis_max = raw_sp[0] + ((ad_limits[1] - raw_ad[0]) / (ad_range * 0.85)) * sp_range
-spx_limits = [right_axis_min, right_axis_max]
-# ------------------------------------------------------------------
+# Enforce an identical 6% structural margin padding factor to perfectly match StockCharts
+ad_limits = [ad_min_val - (ad_range_val * 0.06), ad_max_val + (ad_range_val * 0.06)]
+spx_limits = [sp_min_val - (sp_range_val * 0.06), sp_max_val + (sp_range_val * 0.06)]
+# -----------------------------------------------------------------
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
@@ -897,20 +887,19 @@ if HAS_PLOTLY:
       secondary_y=False,
   )
 
-  # 2. Market Index Overlay - Plotted using synced visualization data (Secondary Axis)
+  # 2. Market Index Overlay - Plotted using true unadjusted quote rows (Secondary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=scaled_sp_line, # Locked together on Day 1 (Left Edge)
+          y=raw_sp, 
           name="NYSE Composite Index",
           line=dict(color="#1d4ed8", width=2),
-          hovertemplate="Index Price: %{text}<extra></extra>",
-          text=[f"{v:,.2f}" for v in raw_sp] # Displays true underlying index prices on hover
+          hovertemplate="Index Price: %{y:,.2f}<extra></extra>"
       ),
       secondary_y=True,
   )
 
-  # Layout configurations customized to create a clean white frame that embeds nicely into Streamlit
+  # Layout configurations customized to clean up frame margins
   fig_ad.update_layout(
       template="plotly_white",
       paper_bgcolor="#ffffff",
