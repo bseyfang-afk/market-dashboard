@@ -850,7 +850,7 @@ sp_min_val, sp_max_val = float(np.min(raw_sp)), float(np.max(raw_sp))
 ad_range_val = ad_max_val - ad_min_val if (ad_max_val - ad_min_val) > 0 else 1
 sp_range_val = sp_max_val - sp_min_val if (sp_max_val - sp_min_val) > 0 else 1
 
-# Fixed Day 1 anchor conversion by isolating the elements as absolute float objects
+# Isolate elements as absolute float scalars
 day1_ad = float(raw_ad[0])
 day1_sp = float(raw_sp[0])
 
@@ -864,10 +864,10 @@ final_combined_range = final_combined_max - final_combined_min
 
 ad_limits = [final_combined_min - (final_combined_range * 0.06), final_combined_max + (final_combined_range * 0.06)]
 
-# Map the right axis price boundaries dynamically to preserve true quote scaling data
+# CRITICAL FIX: Convert right-side limit arrays into plain float scalars to prevent Plotly layout dropping
 right_axis_min = day1_sp + ((ad_limits[0] - day1_ad) / (ad_range_val * 0.90)) * sp_range_val
 right_axis_max = day1_sp + ((ad_limits[1] - day1_ad) / (ad_range_val * 0.90)) * sp_range_val
-spx_limits = [right_axis_min, right_axis_max]
+spx_limits = [float(right_axis_min), float(right_axis_max)]
 # -----------------------------------------------------------
 
 divergence_state = (
