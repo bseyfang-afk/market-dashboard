@@ -891,48 +891,37 @@ if HAS_PLOTLY:
   # Setup subplots with dual y-axes tracking the same visual coordinate plane
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
   
-  # 1. Cumulative A/D Line ($NYAD) - Volatile black line (Venstre akse)
+  # 1. Cumulative A/D Line ($NYAD) - Plotted as the highly volatile black line (Primary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=ad_sim, 
+          y=ad_sim,
           name="$NYAD Cumulative",
-          line=dict(color="#000000", width=1.5),
-          hovertemplate="Value: %{text}<extra></extra>",
-          text=[f"{v:,.2f}" for v in raw_ad_vals]
+          line=dict(color="#000000", width=1.5), # Crisp black line matching reference chart
       ),
       secondary_y=False,
   )
 
-  # 2. Market Index Overlay - Blue line anchored on Day 1 (Høyre akse)
+  # 2. S&P 500 Index ($SPX) - Plotted as the smoother dark blue line (Secondary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=sp_sim, 
-          name="NYSE Composite Index",
-          line=dict(color="#1d4ed8", width=2),
-          hovertemplate="Index Price: %{text}<extra></extra>",
-          text=[f"{v:,.2f}" for v in raw_sp_vals]
+          y=sp_sim,
+          name="$SPX Index",
+          line=dict(color="#1d4ed8", width=2), # Deep blue line matching reference chart
       ),
       secondary_y=True,
   )
 
-  # Set general global chart background styling parameters
+  # Set general global chart background styling parameters matching StockCharts
   fig_ad.update_layout(
-      template="plotly_white",
+      template="plotly_white", 
       paper_bgcolor="#ffffff",
       plot_bgcolor="#ffffff",
       height=400,
       margin=dict(l=20, r=60, t=30, b=20),
       showlegend=True,
-      legend=dict(
-          orientation="h",
-          yanchor="bottom",
-          y=1.02,
-          xanchor="left",
-          x=0.01,
-          font=dict(size=10)
-      )
+      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.01, font=dict(size=10))
   )
 
   # Configure continuous date handling to display clean multi-month grid partitions
@@ -948,14 +937,10 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis - Remapped to show absolute text labels over the shared grid
+  # Configure primary Left Y-Axis ($NYAD Scale - now black to match the data line)
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
-      tickmode="array",
-      tickvals=axis_ticks,
-      ticktext=left_labels,
       showgrid=True,
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
@@ -965,15 +950,12 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis - Remapped to show absolute text labels over the shared grid
+  # Configure secondary Right Y-Axis ($SPX Scale - CRITICAL: FORCED TO MATCH VISUAL SCALE OF AXIS 1)
   fig_ad.update_yaxes(
-      title_text="Index Price Scale",
+      title_text="$SPX Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
-      tickmode="array",
-      tickvals=axis_ticks,
-      ticktext=right_labels,
-      showgrid=False, 
+      matches="y",        # <-- THE MAGIC LINK: Forces the right axis to copy the exact visual scale of the left axis
+      showgrid=False,     # Disable second grid lines to avoid visual overlaps
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,
