@@ -800,7 +800,6 @@ st.caption(
 )
 
 # --- CONNECT REAL LIVE YAHOO FINANCE DATA FOR TRADING VEHICLES ---
-# Fallback to simulation ONLY if the live API data frame returns completely empty
 use_live_data = False
 if hist_data is not None and "^NYAD" in hist_data and "^GSPC" in hist_data:
   # Extract true closing prints and clean up mismatched dates
@@ -816,14 +815,26 @@ if hist_data is not None and "^NYAD" in hist_data and "^GSPC" in hist_data:
     use_live_data = True
 
 if not use_live_data:
-  # Safe backup simulation loop in case of internet connection dropouts
+  # Safe backup simulation loop using wide historical boundaries to match StockCharts layout properties
   ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
   np.random.seed(42)
-  # Fixed the TypeError: add the baseline value to the array BEFORE calling .tolist()
   sp_sim = (5500 + np.cumsum(np.random.randn(170) * 15 + 1)).tolist()
-  # Use sine waves to simulate a more natural, organic volatility for backup data
   t = np.linspace(0, 4 * np.pi, 170)
-  ad_sim = (11500 + np.sin(t) * 400 + np.cumsum(np.random.randn(170) * 180)).tolist()
+  ad_sim = (12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
+
+# --- FORCE STOCKCHARTS AXIS COORDINATION ---
+# Pull exact minimums and maximums across the current chart timeframe
+nyad_min, nyad_max = min(ad_sim), max(ad_sim)
+spx_min, spx_max = min(sp_sim), max(sp_sim)
+
+# Calculate relative matching buffers to guarantee identical top/bottom visual stretching margins
+nyad_range = nyad_max - nyad_min if (nyad_max - nyad_min) > 0 else 1
+spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
+
+# Pin the layout ranges precisely to force lines to share relative percentages across the chart canvas
+nyad_limits = [nyad_min - (nyad_range * 0.02), nyad_max + (nyad_range * 0.02)]
+spx_limits = [spx_min - (spx_range * 0.02), spx_max + (spx_range * 0.02)]
+# --------------------------------------------
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: S&P 500 is testing recent swing highs, but"
@@ -866,12 +877,6 @@ if HAS_PLOTLY:
       secondary_y=True,
   )
 
-  # --- CRITICAL STRICT AXIS MARGIN ALIGNMENT ---
-  # Pull exact boundary bounds over the visible data window
-  nyad_min, nyad_max = min(ad_sim), max(ad_sim)
-  spx_min, spx_max = min(sp_sim), max(sp_sim)
-  # ---------------------------------------------
-
   # Set general global chart background styling parameters
   fig_ad.update_layout(
       template="plotly_white", # Bright white background theme matching StockCharts
@@ -903,11 +908,11 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale) with absolute strict boundaries
+  # Configure primary Left Y-Axis ($NYAD Scale) with strict synchronized bounds
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=[nyad_min, nyad_max], # Hardcoded range with zero padding blocks auto-rounding variance
+      range=nyad_limits, # Enforces rigid min-max pairing
       showgrid=True,     # Keep left axis grid lines active as the dominant guide grid
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
@@ -917,12 +922,12 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale) with matching strict boundaries
+  # Configure secondary Right Y-Axis ($SPX Scale) mapped to identical relative margins
   fig_ad.update_yaxes(
       title_text="$SPX Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=[spx_min, spx_max], # Hardcoded range with zero padding blocks auto-rounding variance
-      showgrid=False,    # Strict rule: disable right axis grid to clear dual chart line interference
+      range=spx_limits,  # Enforces rigid min-max pairing
+      showgrid=False,    # Disable right axis grid to clear dual chart line interference
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,       # Enforces a complete box frame around the canvas
