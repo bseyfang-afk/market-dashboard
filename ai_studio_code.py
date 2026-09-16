@@ -233,8 +233,8 @@ def get_asset_tickers(use_futures=False):
       "Euro Stoxx 50 (EU50)": "^STOXX50E",
       "EWG (DAX ETF)": "EWG",
       "SKEW Index": "^SKEW",
+      "NYSE A/D Line": "^NYAD" # <-- CRITICAL ADDITION: Forces yfinance to pull real historical data
   }
-
 
 @st.cache_data(ttl=300)
 def fetch_market_history(tickers_dict):
