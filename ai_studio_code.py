@@ -467,7 +467,7 @@ def render_60d_chart(
             type="category",
             showgrid=False,
             showticklabels=True,
-            tickfont=dict(size=9, color="#f8fafc"), # Forced to high-contrast white
+            tickfont=dict(size=9, color="#94a3b8"), # Restored to original subtle grey
             nticks=4,
             tickangle=0,
         ),
@@ -481,7 +481,7 @@ def render_60d_chart(
             gridcolor="#1e293b",
             zeroline=False,
             showticklabels=True,
-            tickfont=dict(size=9, color="#f8fafc"), # Forced to high-contrast white
+            tickfont=dict(size=9, color="#94a3b8"), # Restored to original subtle grey
         ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
