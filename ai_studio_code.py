@@ -824,31 +824,31 @@ if HAS_PLOTLY:
   # Setup subplots with dual y-axes tracking the same visual coordinate plane
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
   
-  # 1. Cumulative A/D Line ($NYAD) - Plotted as the thick dark blue line
+  # 1. Cumulative A/D Line ($NYAD) - Plotted as the highly volatile black line (Primary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
           y=ad_sim,
           name="$NYAD Cumulative",
-          line=dict(color="#1d4ed8", width=2), # Solid blue line matching reference chart
+          line=dict(color="#000000", width=1.5), # Crisp black line matching reference chart
       ),
       secondary_y=False,
   )
 
-  # 2. S&P 500 Index ($SPX) - Plotted as the overlay solid dark line
+  # 2. S&P 500 Index ($SPX) - Plotted as the smoother dark blue line (Secondary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
           y=sp_sim,
           name="$SPX Index",
-          line=dict(color="#1e293b", width=2), # Dark grey/black tone matching reference chart
+          line=dict(color="#1d4ed8", width=2), # Deep blue line matching reference chart
       ),
       secondary_y=True,
   )
 
   # Set general global chart background styling parameters
   fig_ad.update_layout(
-      template="plotly_white", # Bright white background theme
+      template="plotly_white", # Bright white background theme matching StockCharts
       paper_bgcolor="#ffffff",
       plot_bgcolor="#ffffff",
       height=400,
@@ -864,79 +864,33 @@ if HAS_PLOTLY:
       )
   )
 
-  # Explicit axis formatting updates to guarantee stability across versions
+  # Explicit axis formatting updates to guarantee grid lines match perfectly
   fig_ad.update_xaxes(
       showgrid=True,
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10)
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale)
+  # Configure primary Left Y-Axis ($NYAD Scale - now black to match the line)
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
-      title_font=dict(color="#1d4ed8", size=11),
+      title_font=dict(color="#000000", size=11),
       showgrid=True,
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
       secondary_y=False
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale)
+  # Configure secondary Right Y-Axis ($SPX Scale - now blue to match the line)
   fig_ad.update_yaxes(
       title_text="$SPX Price Scale",
-      title_font=dict(color="#1e293b", size=11),
+      title_font=dict(color="#1d4ed8", size=11),
       showgrid=False, # Disable second grid lines to avoid visual overlaps
       tickfont=dict(color="#475569", size=10),
       secondary_y=True
   )
 
   st.plotly_chart(fig_ad, use_container_width=True)
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# SECTION 4: Volume Dynamics & 52-Week Highs / Lows
-# ---------------------------------------------------------
-st.subheader("4. Volume Dynamics & 52-Week Highs / Lows (NYSE & NASDAQ)")
-st.caption(
-    "Sources: [Barchart Market Momentum](https://www.barchart.com/stocks/momentum)"
-    " & [CBOE Options"
-    " Statistics](https://www.cboe.com/markets/us/options/market-statistics/)"
-)
-col_nyse, col_nasdaq = st.columns(2)
-nyse = breadth_data["nyse"]
-nasdaq = breadth_data["nasdaq"]
-
-with col_nyse:
-  st.markdown("#### 🏛️ NYSE Breadth & Volume")
-  c1, c2, c3 = st.columns(3)
-  c1.metric("Up Volume %", f"{nyse['up_volume_pct']}%")
-  c2.metric("Advancing Vol", f"{nyse['adv_volume'] / 1e9:.2f} B")
-  c3.metric("Declining Vol", f"{nyse['dec_volume'] / 1e9:.2f} B")
-  st.markdown(
-      f"""
-    * **Unchanged Volume:** {nyse['unch_volume'] / 1e6:.0f} M shares
-    * **52-Week Highs / Lows:** `{nyse['new_highs']}` Highs | `{nyse['new_lows']}` Lows
-    * **Net New Highs:** <span class="badge-green">+{nyse['net_highs']}</span>
-    * **Advancing vs. Declining Stocks:** {nyse['advancing_stocks']} Adv / {nyse['declining_stocks']} Dec
-    """,
-      unsafe_allow_html=True,
-  )
-
-with col_nasdaq:
-  st.markdown("#### 💻 NASDAQ Breadth & Volume")
-  c1, c2, c3 = st.columns(3)
-  c1.metric("Up Volume %", f"{nasdaq['up_volume_pct']}%")
-  c2.metric("Advancing Vol", f"{nasdaq['adv_volume'] / 1e9:.2f} B")
-  c3.metric("Declining Vol", f"{nasdaq['dec_volume'] / 1e9:.2f} B")
-  st.markdown(
-      f"""
-    * **Unchanged Volume:** {nasdaq['unch_volume'] / 1e6:.0f} M shares
-    * **52-Week Highs / Lows:** `{nasdaq['new_highs']}` Highs | `{nasdaq['new_lows']}` Lows
-    * **Net New Highs:** <span class="badge-green">+{nasdaq['net_highs']}</span>
-    * **Advancing vs. Declining Stocks:** {nasdaq['advancing_stocks']} Adv / {nasdaq['declining_stocks']} Dec
-    """,
-      unsafe_allow_html=True,
-  )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
