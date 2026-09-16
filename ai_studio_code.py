@@ -24,7 +24,7 @@ except ImportError:
 # Streamlit Page Config & High-Contrast Theme
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Pre-market Morning Routine Dashboard",
+    page_title="Pre-Market Morning Routine Dashboard",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
