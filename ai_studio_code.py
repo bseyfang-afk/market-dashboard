@@ -444,7 +444,7 @@ st.subheader(
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# 1. Fear & Greed Card (Method 1: Thin Red @ 80, Thin Green @ 20, Limits: 0 to 100)
+# 1. Fear & Greed Card (Method 1: Thin Red @ 80, Thin Green @ 20, Black Curve, Limits: 0 to 100)
 with col1:
   fg_score = fg_data["score"]
   fg_rating = fg_data["rating"]
@@ -473,10 +473,11 @@ with col1:
     fg_wave = 50 + 20 * np.cos(t) + np.cumsum(np.random.randn(60) * 1.5)
     fg_60d = (fg_wave - fg_wave[-1] + fg_score).clip(5, 95).tolist()
 
+  # Line color is now set to crisp black "#000000"
   render_60d_chart(
       dates_60d_str,
       fg_60d,
-      "#f87171",
+      "#000000",
       y_range=[0, 100],
       baseline=50.0,
       baseline_label="Neutral 50",
