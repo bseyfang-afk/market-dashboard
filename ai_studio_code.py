@@ -840,25 +840,25 @@ if ad_dates is None:
   ad_raw = 11500 + np.sin(t) * 400 + np.cumsum(np.random.randn(170) * 180)
   ad_raw[-35:] = ad_raw[-35:] - np.arange(35) * 22
 
-# --- PIXEL-PERFECT VISUAL CANVAS NORMALIZATION (COMBINED MATCH) ---
+# --- PIXEL-PERFECT VISUAL CANVAS NORMALIZATION (REVERSED AMPLITUDE OVERLAY) ---
 ad_min, ad_max = float(np.min(ad_raw)), float(np.max(ad_raw))
 spx_min, spx_max = float(np.min(spx_raw)), float(np.max(spx_raw))
 
 ad_range = ad_max - ad_min if (ad_max - ad_min) > 0 else 1
 spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
 
-# Fixed the TypeError: Extract the Day 1 starting scalars using explicit element index brackets
+# Extract Day 1 absolute starting values to anchor the left edge
 day1_ad_raw = float(ad_raw[0])
 day1_spx_raw = float(spx_raw[0])
 
-# AMPLITUDE MODIFIER MATH: 
+# AMPLITUDE MODIFIER REVERSAL MATH:
 # 1. Measure daily returns relative to Day 1.
-# 2. Scale the blue line's vertical size so its highest peak matches the height of the black line.
+# 2. Scale the black A/D line's vertical size UPWARD to match the high-volatility percentage movements of the blue index line.
 # 3. Keep their starting points strictly anchored together on the left margin.
-amplitude_multiplier = ad_range / spx_range
+amplitude_multiplier = spx_range / ad_range
 
-ad_sim = [50.0 + ((v - day1_ad_raw) / ad_range) * 40.0 for v in ad_raw]
-sp_sim = [50.0 + ((v - day1_spx_raw) / spx_range) * 40.0 * amplitude_multiplier for v in spx_raw]
+ad_sim = [50.0 + ((v - day1_ad_raw) / ad_range) * 40.0 * amplitude_multiplier for v in ad_raw]
+sp_sim = [50.0 + ((v - day1_spx_raw) / spx_range) * 40.0 for v in spx_raw]
 
 # Recalculate expanded frame tracking properties for safe axis layout formatting
 combined_low = min(min(ad_sim), min(sp_sim))
@@ -869,8 +869,8 @@ combined_span = combined_high - combined_low
 axis_ticks = np.linspace(combined_low, combined_high, 5).tolist()
 
 # Reverse-map display ticks back into true, absolute price quotes for axis labels
-left_labels = [f"{int(day1_ad_raw + ((t - 50.0) / 40.0) * ad_range):,}" for t in axis_ticks]
-right_labels = [f"{int(day1_spx_raw + ((t - 50.0) / (40.0 * amplitude_multiplier)) * spx_range):,}" for t in axis_ticks]
+left_labels = [f"{int(day1_ad_raw + ((t - 50.0) / (40.0 * amplitude_multiplier)) * ad_range):,}" for t in axis_ticks]
+right_labels = [f"{int(day1_spx_raw + ((t - 50.0) / 40.0) * spx_range):,}" for t in axis_ticks]
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
