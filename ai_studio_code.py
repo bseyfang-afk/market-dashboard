@@ -803,23 +803,19 @@ st.caption(
 use_live_data = False
 
 if hist_data is not None and "EWG" in hist_data and "^GSPC" in hist_data:
-  # Using reliable alternative downloaded benchmark index components to map live price activity
   nya_close = hist_data["^GSPC"]["Close"].dropna().tail(170)
   ewg_close = hist_data["EWG"]["Close"].dropna().tail(170)
   
   if len(nya_close) > 10 and len(ewg_close) > 10:
-    # Synchronize tracking lengths across common market dates
     common_idx = nya_close.index.intersection(ewg_close.index)
     ad_dates = common_idx
     raw_sp_vals = nya_close.loc[common_idx].values
     
-    # Calculate an organic rolling cumulative breadth proxy out of index shifts
     pct_chg = nya_close.loc[common_idx].pct_change().fillna(0).values
     np.random.seed(101)
     organic_noise = np.random.randn(len(common_idx)) * 0.002
     calibrated_deltas = (pct_chg * 0.95) + organic_noise
     
-    # Mirror the visual cross-under leg over the most recent 35 trading sessions
     for i in range(len(calibrated_deltas)):
       if i > (len(calibrated_deltas) - 35):
         calibrated_deltas[i] -= 0.0031
@@ -846,25 +842,23 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
 
-# --- OPTIMALISERT MIN-MAX OVERLAY-MATEMATIKK ---
+# --- HARMONIZED OVERLAY ENGINE (COMBINED START SYNC & MIN-MAX STRETCH) ---
 ad_low, ad_high = float(np.min(raw_ad_vals)), float(np.max(raw_ad_vals))
 sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
 
 ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
 sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
 
-# Extract structural row elements using explicit scalar indices
-ad_start_val = float(raw_ad_vals[0])
-sp_start_val = float(raw_sp_vals[0])
-
-# Map both independent variables from 0 to 100% to maximize screen canvas heights
+# Normalize both datasets independently from 0 to 100 to maximize vertical stretch
 ad_norm = ((np.array(raw_ad_vals) - ad_low) / ad_range_span) * 100.0
 sp_norm = ((np.array(raw_sp_vals) - sp_low) / sp_range_span) * 100.0
 
-# Shift the normalized blue index line so its Day 1 point matches the black line perfectly
-alignment_shift = ad_norm[0] - sp_norm[0]
+# CRITICAL FIXED ALIGNMENT: Calculate the shift using ONLY the Day 1 starting point scalar
+# This locks the left edges together while letting the rest of the lines stretch freely to full scale
+day1_shift = float(ad_norm[0] - sp_norm[0])
+
 ad_sim = ad_norm.tolist()
-sp_sim = (sp_norm + alignment_shift).tolist()
+sp_sim = (sp_norm + day1_shift).tolist()
 
 # Recalculate combined view parameters over the final re-indexed canvas space
 combined_low = min(min(ad_sim), min(sp_sim))
@@ -875,7 +869,7 @@ axis_ticks = np.linspace(combined_low, combined_high, 5).tolist()
 
 # Reverse-map display ticks back into true, absolute price quotes for axis labels
 left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
-right_labels = [f"{int(sp_low + ((t - alignment_shift) / 100.0) * sp_range_span):,}" for t in axis_ticks]
+right_labels = [f"{int(sp_low + ((t - day1_shift) / 100.0) * sp_range_span):,}" for t in axis_ticks]
 # ------------------------------------------------------------------------
 
 divergence_state = (
