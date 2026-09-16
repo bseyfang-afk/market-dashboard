@@ -842,27 +842,32 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
 
-# --- OPTIMALISERT MIN-MAX OVERLAY-MATEMATIKK ---
-# Finn bunn og topp for begge datasettene uavhengig over hele 8-månedersperioden
+# --- OPTIMALISERT STARTPUNKT-ANCKERED OVERLAY ---
 ad_low, ad_high = float(np.min(raw_ad_vals)), float(np.max(raw_ad_vals))
 sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
 
 ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
 sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
 
-# Fixed the TypeError by isolating the Day 1 scalar value using list index brackets [0]
 ad_start_val = float(raw_ad_vals[0])
 sp_start_val = float(raw_sp_vals[0])
 
-# Normaliser begge seriene til en perfekt felles visuell skala (0% til 100%)
-# Dette tvinger både bunnene og toppene til å utnytte nøyaktig samme vertikale plass
-ad_sim = [((v - ad_low) / ad_range_span) * 100.0 for v in raw_ad_vals]
-sp_sim = [((v - sp_low) / sp_range_span) * 100.0 for v in raw_sp_vals]
+# CRITICAL FIX: Base calculations on Day 1 start values (so they overlap perfectly at the beginning),
+# but multiply by the ratio of their volatility ranges so they stretch evenly from top to bottom.
+volatility_multiplier = ad_range_span / sp_range_span
 
-# Opprett 5 jevnt fordelte referansepunkter på rutenettet
-axis_ticks = [0.0, 25.0, 50.0, 75.0, 100.0]
-left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
-right_labels = [f"{int(sp_low + (t / 100.0) * sp_range_span):,}" for t in axis_ticks]
+ad_sim = [50.0 + ((v - ad_start_val) / ad_range_span) * 40.0 for v in raw_ad_vals]
+sp_sim = [50.0 + ((v - sp_start_val) / sp_range_span) * 40.0 for v in raw_sp_vals]
+
+# Finjuster den visuelle rammestørrelsen basert på det nye felles planet
+combined_low = min(min(ad_sim), min(sp_sim))
+combined_high = max(max(ad_sim), max(sp_sim))
+combined_span = combined_high - combined_low
+
+axis_ticks = np.linspace(combined_low, combined_high, 5).tolist()
+
+left_labels = [f"{int(ad_start_val + ((t - 50.0) / 40.0) * ad_range_span):,}" for t in axis_ticks]
+right_labels = [f"{int(sp_start_val + ((t - 50.0) / 40.0) * sp_range_span):,}" for t in axis_ticks]
 # ------------------------------------------------------------------------
 
 divergence_state = (
@@ -945,7 +950,7 @@ if HAS_PLOTLY:
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=[-5, 105], # Gir 5% polstring i topp og bunn for å unngå linjeklipping
+      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
       tickmode="array",
       tickvals=axis_ticks,
       ticktext=left_labels,
@@ -962,11 +967,11 @@ if HAS_PLOTLY:
   fig_ad.update_yaxes(
       title_text="Index Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=[-5, 105], # Gir 5% polstring i topp og bunn for å unngå linjeklipping
+      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
       tickmode="array",
       tickvals=axis_ticks,
       ticktext=right_labels,
-      showgrid=False, # Slå av for å unngå kolliderende rutenett
+      showgrid=False, 
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,
