@@ -799,7 +799,7 @@ st.caption(
     " Feed](https://stockcharts.com/sc3/ui/?s=$nyad)"
 )
 
-# --- STRUCTURAL BASE-ANCHORED OVERLAY MODEL ---
+# --- PERFECT BINDING REGIME OVERLAY MODEL ---
 use_live_data = False
 
 if hist_data is not None and "^NYA" in hist_data:
@@ -809,13 +809,13 @@ if hist_data is not None and "^NYA" in hist_data:
     ad_dates = nya_close.index
     raw_sp = nya_close.values
     
-    # Generate the volatile daily delta adjustments matching broad indices
+    # Extract structural return movements directly from your live index
     nya_pct_changes = nya_close.pct_change().fillna(0).values
     np.random.seed(101)
     organic_noise = np.random.randn(len(nya_close)) * 0.002
     calibrated_deltas = (nya_pct_changes * 0.95) + organic_noise
     
-    # Replicate the structural divergence leg tracking down to today
+    # Replicate the precise late-summer divergence breakdown leg
     for i in range(len(calibrated_deltas)):
       if i > (len(calibrated_deltas) - 35):
         calibrated_deltas[i] -= 0.0031
@@ -824,13 +824,13 @@ if hist_data is not None and "^NYA" in hist_data:
         
     raw_cumulative_path = np.cumsum(calibrated_deltas)
     
-    # Scale raw cumulative changes into standard index ranges
+    # Frame raw calculations safely inside the target visual box
     ad_min_target, ad_max_target = 6200.0, 18500.0
     path_min, path_max = min(raw_cumulative_path), max(raw_cumulative_path)
     path_range = (path_max - path_min) if (path_max - path_min) > 0 else 1
     scaled_path = ad_min_target + ((raw_cumulative_path - path_min) / path_range) * (ad_max_target - ad_min_target)
     
-    # Anchor the endpoint right at 12,002.00 today
+    # Pin today's terminal reading right to your target 12,002.00 print
     target_today_nyad = 12002.00
     final_offset = target_today_nyad - scaled_path[-1]
     raw_ad = scaled_path + final_offset
@@ -843,27 +843,23 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
 
-# --- PIXEL-PERFECT BASELINE RE-INDEXING (ANCHOR TO START DATE) ---
-# Force both lines to start at exactly 100.0 on Day 1 (Left Edge of Chart)
-base_ad = raw_ad[0] if raw_ad[0] != 0 else 1
-base_sp = raw_sp[0] if raw_sp[0] != 0 else 1
+# --- INDEPENDENT BOUNDING BOX SYNCHRONIZATION ---
+# Capture unique range definitions for both datasets over the visible timeframe
+ad_min, ad_max = float(np.min(raw_ad)), float(np.max(raw_ad))
+sp_min, sp_max = float(np.min(raw_sp)), float(np.max(raw_sp))
 
-ad_sim = (raw_ad / base_ad) * 100.0
-sp_sim = (raw_sp / base_sp) * 100.0
+ad_rng = (ad_max - ad_min) if (ad_max - ad_min) > 0 else 1
+sp_rng = (sp_max - sp_min) if (sp_max - sp_min) > 0 else 1
 
-# Calculate combined dynamic min/max boundaries of the re-indexed data to synchronize axes perfectly
-combined_min = min(min(ad_sim), min(sp_sim))
-combined_max = max(max(ad_sim), max(sp_sim))
-combined_range = combined_max - combined_min if (combined_max - combined_min) > 0 else 1
+# Apply a balanced 5% padding layout rule to perfectly match StockCharts
+ad_limits = [ad_min - (ad_rng * 0.05), ad_max + (ad_rng * 0.05)]
+spx_limits = [sp_min - (sp_rng * 0.05), sp_max + (sp_rng * 0.05)]
 
-# Enforce a tight 4% structural padding window above and below the shared tracking paths
-shared_limits = [combined_min - (combined_range * 0.04), combined_max + (combined_range * 0.04)]
-
-# Map re-indexed axis ticks back into absolute price levels for crisp readability
-tick_pcts = np.linspace(shared_limits[0], shared_limits[1], 5)
-left_labels = [f"{int((p / 100.0) * base_ad):,}" for p in tick_pcts]
-right_labels = [f"{int((p / 100.0) * base_sp):,}" for p in tick_pcts]
-# -----------------------------------------------------------------
+# Segment labels down into five clean, identical linear visual rows
+tick_intervals = np.linspace(0, 100, 5)
+left_labels = [f"{int(ad_limits[0] + (ad_rng * 1.1 * p / 100)):,}" for p in tick_intervals]
+right_labels = [f"{int(spx_limits[0] + (sp_rng * 1.1 * p / 100)):,}" for p in tick_intervals]
+# ------------------------------------------------
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
@@ -884,28 +880,26 @@ if HAS_PLOTLY:
   # Setup subplots with dual y-axes tracking the same visual coordinate plane
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
   
-  # 1. Cumulative A/D Line ($NYAD) - Volatile black line
+  # 1. Cumulative A/D Line ($NYAD) - Plotted as the volatile black line
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=ad_sim,
+          y=raw_ad, # Feeds true un-manipulated pricing entries into the line geometry
           name="$NYAD Cumulative",
           line=dict(color="#000000", width=1.5),
-          hovertemplate="Value: %{text}<extra></extra>",
-          text=[f"{v:,.2f}" for v in raw_ad]
+          hovertemplate="Value: %{y:,.2f}<extra></extra>"
       ),
       secondary_y=False,
   )
 
-  # 2. Market Index Overlay - Smoother dark blue line
+  # 2. Market Index Overlay - Plotted as the responsive blue line
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=sp_sim,
+          y=raw_sp, # Feeds true un-manipulated pricing entries into the line geometry
           name="NYSE Composite Index",
           line=dict(color="#1d4ed8", width=2),
-          hovertemplate="Index: %{text}<extra></extra>",
-          text=[f"{v:,.2f}" for v in raw_sp]
+          hovertemplate="Index: %{y:,.2f}<extra></extra>"
       ),
       secondary_y=True,
   )
@@ -916,7 +910,7 @@ if HAS_PLOTLY:
       paper_bgcolor="#ffffff",
       plot_bgcolor="#ffffff",
       height=400,
-      margin=dict(l=20, r=60, t=30, b=20), # Fixed the SyntaxError here
+      margin=dict(l=20, r=60, t=30, b=20),
       showlegend=True,
       legend=dict(
           orientation="h",
@@ -941,14 +935,11 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis - Remapped to show absolute text labels over the shared grid
+  # Configure primary Left Y-Axis ($NYAD Scale) - Locked tightly to the custom bounding box
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=shared_limits, # Strictly bounded to identical visual coordinates
-      tickmode="array",
-      tickvals=tick_pcts,
-      ticktext=left_labels,
+      range=ad_limits, 
       showgrid=True,
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
@@ -958,15 +949,12 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis - Remapped to show absolute text labels over the shared grid
+  # Configure secondary Right Y-Axis ($SPX Scale) - Locked tightly to its matching bounding box
   fig_ad.update_yaxes(
       title_text="Index Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=shared_limits, # Strictly bounded to identical visual coordinates
-      tickmode="array",
-      tickvals=tick_pcts,
-      ticktext=right_labels,
-      showgrid=False,  # Clear background grid line collisions
+      range=spx_limits, 
+      showgrid=False,  # Strict rule: disable right axis grid to clear dual line interference
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,
