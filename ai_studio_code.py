@@ -799,11 +799,11 @@ st.caption(
     " Feed](https://stockcharts.com/sc3/ui/?s=$nyad)"
 )
 
-ad_dates = pd.date_range(end=today_dt, periods=170, freq="B") # Expanded to ~8 calendar months (170 trading days)
+ad_dates = pd.date_range(end=today_dt, periods=90, freq="B")
 np.random.seed(42)
-sp_sim = 5500 + np.cumsum(np.random.randn(170) * 12 + 2)
-ad_sim = np.cumsum(np.random.randn(170) * 350 + 150)
-ad_sim[-30:] = ad_sim[-30:] - np.arange(30) * 40 # Simulates recent divergence leg
+sp_sim = 5500 + np.cumsum(np.random.randn(90) * 12 + 2)
+ad_sim = np.cumsum(np.random.randn(90) * 350 + 150)
+ad_sim[-15:] = ad_sim[-15:] - np.arange(15) * 40
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: S&P 500 is testing recent swing highs, but"
@@ -821,79 +821,80 @@ st.markdown(
 if HAS_PLOTLY:
   from plotly.subplots import make_subplots
 
-  # Setup subplots with dual y-axes tracking the same visual coordinate plane
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
-  
-  # 1. Cumulative A/D Line ($NYAD) - Plotted as the highly volatile black line (Primary Axis)
-  fig_ad.add_trace(
-      go.Scatter(
-          x=ad_dates,
-          y=ad_sim,
-          name="$NYAD Cumulative",
-          line=dict(color="#000000", width=1.5), # Crisp black line matching reference chart
-      ),
-      secondary_y=False,
-  )
-
-  # 2. S&P 500 Index ($SPX) - Plotted as the smoother dark blue line (Secondary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
           y=sp_sim,
-          name="$SPX Index",
-          line=dict(color="#1d4ed8", width=2), # Deep blue line matching reference chart
+          name="S&P 500 Index",
+          line=dict(color="#38bdf8", width=2.5),
       ),
+      secondary_y=False,
+  )
+  fig_ad.add_trace(
+      go.Scatter(
+          x=ad_dates,
+          y=ad_sim,
+          name="Cumulative NYSE A/D Line ($NYAD)",
+          line=dict(color="#f59e0b", width=2, dash="dot")),
       secondary_y=True,
   )
-
-  # Set general global chart background styling parameters
   fig_ad.update_layout(
-      template="plotly_white", # Bright white background theme matching StockCharts
-      paper_bgcolor="#ffffff",
-      plot_bgcolor="#ffffff",
-      height=400,
-      margin=dict(l=20, r=60, t=30, b=20),
-      showlegend=True,
-      legend=dict(
-          orientation="h",
-          yanchor="bottom",
-          y=1.02,
-          xanchor="left",
-          x=0.01,
-          font=dict(size=10)
-      )
+      template="plotly_dark",
+      paper_bgcolor="#111827",
+      plot_bgcolor="#111827",
+      height=340,
+      margin=dict(l=20, r=20, t=30, b=20),
   )
-
-  # Configure continuous date handling to display clean multi-month grid partitions
-  fig_ad.update_xaxes(
-      type="date", # Sets the axis to read structural dates instead of categorical text
-      dtick="M1", # Forces grid grid lines to slice exactly on 1-month intervals
-      tickformat="%b %y", # Labels ticks cleanly as Month-Year abbreviations (e.g. 'Jan 26')
-      showgrid=True,
-      gridcolor="#e2e8f0",
-      tickfont=dict(color="#475569", size=10)
-  )
-
-  # Configure primary Left Y-Axis ($NYAD Scale - matching the black data line)
-  fig_ad.update_yaxes(
-      title_text="$NYAD Cumulative Scale",
-      title_font=dict(color="#000000", size=11),
-      showgrid=True,
-      gridcolor="#e2e8f0",
-      tickfont=dict(color="#475569", size=10),
-      secondary_y=False
-  )
-
-  # Configure secondary Right Y-Axis ($SPX Scale - matching the blue data line)
-  fig_ad.update_yaxes(
-      title_text="$SPX Price Scale",
-      title_font=dict(color="#1d4ed8", size=11),
-      showgrid=False, # Disable second grid lines to avoid visual overlaps
-      tickfont=dict(color="#475569", size=10),
-      secondary_y=True
-  )
-
   st.plotly_chart(fig_ad, use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# SECTION 4: Volume Dynamics & 52-Week Highs / Lows
+# ---------------------------------------------------------
+st.subheader("4. Volume Dynamics & 52-Week Highs / Lows (NYSE & NASDAQ)")
+st.caption(
+    "Sources: [Barchart Market Momentum](https://www.barchart.com/stocks/momentum)"
+    " & [CBOE Options"
+    " Statistics](https://www.cboe.com/markets/us/options/market-statistics/)"
+)
+col_nyse, col_nasdaq = st.columns(2)
+nyse = breadth_data["nyse"]
+nasdaq = breadth_data["nasdaq"]
+
+with col_nyse:
+  st.markdown("#### 🏛️ NYSE Breadth & Volume")
+  c1, c2, c3 = st.columns(3)
+  c1.metric("Up Volume %", f"{nyse['up_volume_pct']}%")
+  c2.metric("Advancing Vol", f"{nyse['adv_volume'] / 1e9:.2f} B")
+  c3.metric("Declining Vol", f"{nyse['dec_volume'] / 1e9:.2f} B")
+  st.markdown(
+      f"""
+    * **Unchanged Volume:** {nyse['unch_volume'] / 1e6:.0f} M shares
+    * **52-Week Highs / Lows:** `{nyse['new_highs']}` Highs | `{nyse['new_lows']}` Lows
+    * **Net New Highs:** <span class="badge-green">+{nyse['net_highs']}</span>
+    * **Advancing vs. Declining Stocks:** {nyse['advancing_stocks']} Adv / {nyse['declining_stocks']} Dec
+    """,
+      unsafe_allow_html=True,
+  )
+
+with col_nasdaq:
+  st.markdown("#### 💻 NASDAQ Breadth & Volume")
+  c1, c2, c3 = st.columns(3)
+  c1.metric("Up Volume %", f"{nasdaq['up_volume_pct']}%")
+  c2.metric("Advancing Vol", f"{nasdaq['adv_volume'] / 1e9:.2f} B")
+  c3.metric("Declining Vol", f"{nasdaq['dec_volume'] / 1e9:.2f} B")
+  st.markdown(
+      f"""
+    * **Unchanged Volume:** {nasdaq['unch_volume'] / 1e6:.0f} M shares
+    * **52-Week Highs / Lows:** `{nasdaq['new_highs']}` Highs | `{nasdaq['new_lows']}` Lows
+    * **Net New Highs:** <span class="badge-green">+{nasdaq['net_highs']}</span>
+    * **Advancing vs. Declining Stocks:** {nasdaq['advancing_stocks']} Adv / {nasdaq['declining_stocks']} Dec
+    """,
+      unsafe_allow_html=True,
+  )
+
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
