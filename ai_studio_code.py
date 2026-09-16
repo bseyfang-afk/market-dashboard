@@ -287,93 +287,92 @@ def compute_ma(series, period, ma_type="EMA"):
 
 @st.cache_data(ttl=900)
 def generate_sample_breadth_data():
-  # Baseline snapshot matching your template view to fall back on if the markets are closed
+  # Setup an explicit "N/A" dictionary so a connection failure never mimics real data
   fallback_data = {
       "nyse": {
-          "adv_vol_pct": 36.4, "dec_vol_pct": 62.9, "unch_vol_pct": 0.7,
-          "adv_stocks_pct": 34.5, "dec_stocks_pct": 63.9, "unch_stocks_pct": 1.7,
-          "new_highs": 54, "new_lows": 100, "net_highs": -46,
-          "advancing_stocks": 646, "declining_stocks": 1197, "unchanged_stocks": 31
+          "adv_vol_pct": "N/A", "dec_vol_pct": "N/A", "unch_vol_pct": "N/A",
+          "adv_stocks_pct": "N/A", "dec_stocks_pct": "N/A", "unch_stocks_pct": "N/A",
+          "new_highs": "N/A", "new_lows": "N/A", "net_highs": 0,
+          "advancing_stocks": "N/A", "declining_stocks": "N/A", "unchanged_stocks": "N/A",
+          "is_offline": True # Signal variable to turn off traffic lights
       },
       "nasdaq": {
-          "adv_vol_pct": 37.1, "dec_vol_pct": 62.2, "unch_vol_pct": 0.8,
-          "adv_stocks_pct": 30.5, "dec_stocks_pct": 66.8, "unch_stocks_pct": 2.7,
-          "new_highs": 35, "new_lows": 232, "net_highs": -197,
-          "advancing_stocks": 949, "declining_stocks": 2082, "unchanged_stocks": 85
+          "adv_vol_pct": "N/A", "dec_vol_pct": "N/A", "unch_vol_pct": "N/A",
+          "adv_stocks_pct": "N/A", "dec_stocks_pct": "N/A", "unch_stocks_pct": "N/A",
+          "new_highs": "N/A", "new_lows": "N/A", "net_highs": 0,
+          "advancing_stocks": "N/A", "declining_stocks": "N/A", "unchanged_stocks": "N/A",
+          "is_offline": True # Signal variable to turn off traffic lights
       },
       "meta": {
-          "wsj_timestamp": "Live Yahoo Feed Stream",
+          "wsj_timestamp": "Offline (Connection Failed)",
           "local_fetch_time": datetime.datetime.now().strftime("%X")
       }
   }
 
-  # Dynamically process live metrics using your active, working Yahoo Finance feed
-  if hist_data is not None and "^GSPC" in hist_data and "^NDX" in hist_data:
-    try:
-      spx_df = hist_data["^GSPC"].dropna()
-      ndx_df = hist_data["^NDX"].dropna()
+  # Query the public CBOE/Barchart unified analytics endpoint directly
+  try:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    r = requests.get("https://cboe.com", headers=headers, timeout=8)
+    
+    if r.status_code == 200:
+      api_data = r.json()
       
-      if len(spx_df) >= 2 and len(ndx_df) >= 2:
-        # Calculate actual daily closing returns to mathematically guide our breadth ratios
-        spx_return = (spx_df["Close"].iloc[-1] / spx_df["Close"].iloc[-2]) - 1.0
-        ndx_return = (ndx_df["Close"].iloc[-1] / ndx_df["Close"].iloc[-2]) - 1.0
-        
-        # --- NATIVE PROPORTIONAL VOLATILITY BREADTH ENGINE ---
-        # Remaps live asset price velocity into balanced, clean 100% total distribution grids
-        def derive_live_breadth(daily_return, base_a, base_d, base_u):
-          # Shift the base percentages smoothly according to actual market velocity
-          raw_gains = daily_return * 15.0
-          adv_p = max(min(base_a + raw_gains * 100, 88.0), 8.0)
-          dec_p = max(min(base_d - raw_gains * 100, 88.0), 8.0)
-          unch_p = max(100.0 - adv_p - dec_p, 0.4)
-          
-          # Re-normalize to guarantee they sum up to exactly 100.0% with no rounding leaks
-          total_sum = adv_p + dec_p + unch_p
-          adv_p = round((adv_p / total_sum) * 100, 1)
-          dec_p = round((dec_p / total_sum) * 100, 1)
-          unch_p = round(100.0 - adv_p - dec_p, 1)
-          
-          total_pool = base_a + base_d + base_u
-          return {
-              "adv_pct": adv_p, "dec_pct": dec_p, "unch_pct": unch_p,
-              "adv_count": int(total_pool * (adv_p / 100)),
-              "dec_count": int(total_pool * (dec_p / 100)),
-              "unch_count": int(total_pool * (unch_p / 100))
+      # Extract real-time absolute numbers for the NYSE Exchange
+      n_adv = int(api_data.get("nyse_advancing_issues"))
+      n_dec = int(api_data.get("nyse_declining_issues"))
+      n_unch = int(api_data.get("nyse_unchanged_issues"))
+      n_adv_v = int(api_data.get("nyse_advancing_volume"))
+      n_dec_v = int(api_data.get("nyse_declining_volume"))
+      n_unch_v = int(api_data.get("nyse_unchanged_volume"))
+      n_nh = int(api_data.get("nyse_new_highs"))
+      n_nl = int(api_data.get("nyse_new_lows"))
+
+      # Extract real-time absolute numbers for the NASDAQ Exchange
+      m_adv = int(api_data.get("nasdaq_advancing_issues"))
+      m_dec = int(api_data.get("nasdaq_declining_issues"))
+      m_unch = int(api_data.get("nasdaq_unchanged_issues"))
+      m_adv_v = int(api_data.get("nasdaq_advancing_volume"))
+      m_dec_v = int(api_data.get("nasdaq_declining_volume"))
+      m_unch_v = int(api_data.get("nasdaq_unchanged_volume"))
+      m_nh = int(api_data.get("nasdaq_new_highs"))
+      m_nl = int(api_data.get("nasdaq_new_lows"))
+
+      # Run exact percentage total calculations
+      nyse_tot_s = n_adv + n_dec + n_unch
+      nyse_tot_v = n_adv_v + n_dec_v + n_unch_v
+      nas_tot_s = m_adv + m_dec + m_unch
+      nas_tot_v = m_adv_v + m_dec_v + m_unch_v
+
+      return {
+          "nyse": {
+              "adv_stocks_pct": f"{round((n_adv / nyse_tot_s) * 100, 1)}%",
+              "dec_stocks_pct": f"{round((n_dec / nyse_tot_s) * 100, 1)}%",
+              "unch_stocks_pct": f"{round((n_unch / nyse_tot_s) * 100, 1)}%",
+              "adv_vol_pct": f"{round((n_adv_v / nyse_tot_v) * 100, 1)}%",
+              "dec_vol_pct": f"{round((n_dec_v / nyse_tot_v) * 100, 1)}%",
+              "unch_vol_pct": f"{round((n_unch_v / nyse_tot_v) * 100, 1)}%",
+              "new_highs": str(n_nh), "new_lows": str(n_nl), "net_highs": n_nh - n_nl,
+              "advancing_stocks": str(n_adv), "declining_stocks": str(n_dec), "unchanged_stocks": str(n_unch),
+              "is_offline": False
+          },
+          "nasdaq": {
+              "adv_stocks_pct": f"{round((m_adv / nas_tot_s) * 100, 1)}%",
+              "dec_stocks_pct": f"{round((m_dec / nas_tot_s) * 100, 1)}%",
+              "unch_stocks_pct": f"{round((m_unch / nas_tot_s) * 100, 1)}%",
+              "adv_vol_pct": f"{round((m_adv_v / nas_tot_v) * 100, 1)}%",
+              "dec_vol_pct": f"{round((m_dec_v / nas_tot_v) * 100, 1)}%",
+              "unch_vol_pct": f"{round((m_unch_v / nas_tot_v) * 100, 1)}%",
+              "new_highs": str(m_nh), "new_lows": str(m_nl), "net_highs": m_nh - m_nl,
+              "advancing_stocks": str(m_adv), "declining_stocks": str(m_dec), "unchanged_stocks": str(m_unch),
+              "is_offline": False
+          },
+          "meta": {
+              "wsj_timestamp": "Live Exchange API Stream",
+              "local_fetch_time": datetime.datetime.now().strftime("%X")
           }
-
-        nyse_m = derive_live_breadth(spx_return, 646, 1197, 31)
-        nas_m = derive_live_breadth(ndx_return, 949, 2082, 85)
-        
-        # Calculate realistic highs and lows based on actual index movement
-        n_high = max(int(54 + spx_return * 350), 3)
-        n_low = max(int(100 - spx_return * 450), 6)
-        m_high = max(int(35 + ndx_return * 250), 2)
-        m_low = max(int(232 - ndx_return * 550), 9)
-
-        return {
-            "nyse": {
-                "adv_vol_pct": round(nyse_m["adv_pct"] * 1.02, 1), 
-                "dec_vol_pct": round(nyse_m["dec_pct"] * 0.98, 1), 
-                "unch_vol_pct": round(100.0 - round(nyse_m["adv_pct"] * 1.02, 1) - round(nyse_m["dec_pct"] * 0.98, 1), 1),
-                "adv_stocks_pct": nyse_m["adv_pct"], "dec_stocks_pct": nyse_m["dec_pct"], "unch_stocks_pct": nyse_m["unch_pct"],
-                "new_highs": n_high, "new_lows": n_low, "net_highs": n_high - n_low,
-                "advancing_stocks": nyse_m["adv_count"], "declining_stocks": nyse_m["dec_count"], "unchanged_stocks": nyse_m["unch_count"]
-            },
-            "nasdaq": {
-                "adv_vol_pct": round(nas_m["adv_pct"] * 1.03, 1), 
-                "dec_vol_pct": round(nas_m["dec_pct"] * 0.97, 1), 
-                "unch_vol_pct": round(100.0 - round(nas_m["adv_pct"] * 1.03, 1) - round(nas_m["dec_pct"] * 0.97, 1), 1),
-                "adv_stocks_pct": nas_m["adv_pct"], "dec_stocks_pct": nas_m["dec_pct"], "unch_stocks_pct": nas_m["unch_pct"],
-                "new_highs": m_high, "new_lows": m_low, "net_highs": m_high - m_low,
-                "advancing_stocks": nas_m["adv_count"], "declining_stocks": nas_m["dec_count"], "unchanged_stocks": nas_m["unch_count"]
-            },
-            "meta": {
-                "wsj_timestamp": "Live Yahoo Feed Stream",
-                "local_fetch_time": datetime.datetime.now().strftime("%X")
-            }
-        }
-    except:
-      pass
+      }
+  except:
+    pass
 
   return fallback_data
   
@@ -1038,7 +1037,7 @@ st.subheader("4. Volume Dynamics & 52-Week Highs / Lows (NYSE & NASDAQ)")
 
 nyse_data = breadth_data["nyse"]
 nasdaq_data = breadth_data["nasdaq"]
-meta_data = breadth_data.get("meta", {"wsj_timestamp": "Live Stream Close", "local_fetch_time": datetime.datetime.now().strftime("%X")})
+meta_data = breadth_data.get("meta", {"wsj_timestamp": "Offline (Connection Failed)", "local_fetch_time": datetime.datetime.now().strftime("%X")})
 
 # Display live timestamp records right underneath the section header row banner
 st.markdown(
@@ -1049,8 +1048,17 @@ st.caption("Synchronized Market Metrics representing both Issues & Shares in sta
 
 col_nyse, col_nasdaq = st.columns(2)
 
-nyse_badge_style = "badge-green" if nyse_data["net_highs"] >= 0 else "badge-red"
-nasdaq_badge_style = "badge-green" if nasdaq_data["net_highs"] >= 0 else "badge-red"
+# Dynamic badge generation to shift colors automatically based on market momentum
+if nyse_data.get("is_offline", True):
+  nyse_badge_style = "badge-yellow"
+  nasdaq_badge_style = "badge-yellow"
+  n_l1, n_l2, n_l3 = "⚪", "⚪", "⚪"
+  m_l1, m_l2, m_l3 = "⚪", "⚪", "⚪"
+else:
+  nyse_badge_style = "badge-green" if nyse_data["net_highs"] >= 0 else "badge-red"
+  nasdaq_badge_style = "badge-green" if nasdaq_data["net_highs"] >= 0 else "badge-red"
+  n_l1, n_l2, n_l3 = "🟢", "🔴", "⚪"
+  m_l1, m_l2, m_l3 = "🟢", "🔴", "⚪"
 
 with col_nyse:
   st.markdown("#### 🏛️ NYSE Breadth & Volume")
@@ -1058,22 +1066,22 @@ with col_nyse:
   # Row 1: Unified Shares (Volume) percentages
   st.markdown("##### **Shares Momentum (Volume %)**")
   sv1, sv2, sp3 = st.columns(3)
-  sv1.metric("🟢 Advancing Vol", f"{nyse_data['adv_vol_pct']}%")
-  sv2.metric("🔴 Declining Vol", f"{nyse_data['dec_vol_pct']}%")
-  sp3.metric("⚪ Unchanged Vol", f"{nyse_data['unch_vol_pct']}%")
+  sv1.metric(f"{n_l1} Advancing Vol", nyse_data['adv_vol_pct'])
+  sv2.metric(f"{n_l2} Declining Vol", nyse_data['dec_vol_pct'])
+  sp3.metric(f"{n_l3} Unchanged Vol", nyse_data['unch_vol_pct'])
   
   # Row 2: Unified Issues (Companies) percentages
   st.markdown("##### **Issues Momentum (Companies %)**")
   si1, si2, si3 = st.columns(3)
-  si1.metric("🟢 Advancing Issues", f"{nyse_data['adv_stocks_pct']}%")
-  si2.metric("🔴 Declining Issues", f"{nyse_data['dec_stocks_pct']}%")
-  si3.metric("⚪ Unchanged Issues", f"{nyse_data['unch_stocks_pct']}%")
+  si1.metric(f"{n_l1} Advancing Issues", nyse_data['adv_stocks_pct'])
+  si2.metric(f"{n_l2} Declining Issues", nyse_data['dec_stocks_pct'])
+  si3.metric(f"{n_l3} Unchanged Issues", nyse_data['unch_stocks_pct'])
   
   st.markdown(
       f"""
     <hr style='margin: 8px 0;'>
     * **52-Week Highs / Lows:** `{nyse_data['new_highs']}` Highs | `{nyse_data['new_lows']}` Lows
-    * **Net New Highs/Lows:** <span class="{nyse_badge_style}">{nyse_data['net_highs']}</span>
+    * **Net New Highs/Lows:** <span class="{nyse_badge_style}">{nyse_data['net_highs'] if not nyse_data.get("is_offline") else "N/A"}</span>
     * **Raw Issue Split:** {nyse_data['advancing_stocks']} Adv / {nyse_data['declining_stocks']} Dec / {nyse_data['unchanged_stocks']} Unch
     """,
       unsafe_allow_html=True,
@@ -1085,22 +1093,22 @@ with col_nasdaq:
   # Row 1: Unified Shares (Volume) percentages
   st.markdown("##### **Shares Momentum (Volume %)**")
   sv1, sv2, sp3 = st.columns(3)
-  sv1.metric("🟢 Advancing Vol", f"{nasdaq_data['adv_vol_pct']}%")
-  sv2.metric("🔴 Declining Vol", f"{nasdaq_data['dec_vol_pct']}%")
-  sp3.metric("⚪ Unchanged Vol", f"{nasdaq_data['unch_vol_pct']}%")
+  sv1.metric(f"{m_l1} Advancing Vol", nasdaq_data['adv_vol_pct'])
+  sv2.metric(f"{m_l2} Declining Vol", nasdaq_data['dec_vol_pct'])
+  sp3.metric(f"{m_l3} Unchanged Vol", nasdaq_data['unch_vol_pct'])
   
   # Row 2: Unified Issues (Companies) percentages
   st.markdown("##### **Issues Momentum (Companies %)**")
   si1, si2, si3 = st.columns(3)
-  si1.metric("🟢 Advancing Issues", f"{nasdaq_data['adv_stocks_pct']}%")
-  si2.metric("🔴 Declining Issues", f"{nasdaq_data['dec_stocks_pct']}%")
-  si3.metric("⚪ Unchanged Issues", f"{nasdaq_data['unch_stocks_pct']}%")
+  si1.metric(f"{m_l1} Advancing Issues", nasdaq_data['adv_stocks_pct'])
+  si2.metric(f"{m_l2} Declining Issues", nasdaq_data['dec_stocks_pct'])
+  si3.metric(f"{m_l3} Unchanged Issues", nasdaq_data['unch_stocks_pct'])
   
   st.markdown(
       f"""
     <hr style='margin: 8px 0;'>
     * **52-Week Highs / Lows:** `{nasdaq_data['new_highs']}` Highs | `{nasdaq_data['new_lows']}` Lows
-    * **Net New Highs/Lows:** <span class="{nasdaq_badge_style}">{nasdaq_data['net_highs']}</span>
+    * **Net New Highs/Lows:** <span class="{nasdaq_badge_style}">{nasdaq_data['net_highs'] if not nasdaq_data.get("is_offline") else "N/A"}</span>
     * **Raw Issue Split:** {nasdaq_data['advancing_stocks']} Adv / {nasdaq_data['declining_stocks']} Dec / {nasdaq_data['unchanged_stocks']} Unch
     """,
       unsafe_allow_html=True,
