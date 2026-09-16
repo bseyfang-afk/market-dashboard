@@ -557,7 +557,7 @@ with col1:
   render_60d_chart(
       dates_60d_str,
       fg_60d,
-      "#000000",
+      "#ff9f0a",
       y_range=[0, 100],
       baseline=50.0,
       baseline_label="Neutral 50",
