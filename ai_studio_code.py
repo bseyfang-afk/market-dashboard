@@ -843,23 +843,30 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
 
-# --- INDEPENDENT BOUNDING BOX SYNCHRONIZATION ---
-# Capture unique range definitions for both datasets over the visible timeframe
-ad_min, ad_max = float(np.min(raw_ad)), float(np.max(raw_ad))
-sp_min, sp_max = float(np.min(raw_sp)), float(np.max(raw_sp))
+# --- DAY 1 VISUAL BASELINE SYNC (STOCKCHARTS ALIGNMENT STYLE) ---
+# 1. Map the S&P/NYSE Index values into an artificial visual plotting array
+# 2. Subtract its Day 1 starting price, and multiply it by a scaling factor to match the height range of the black line
+sp_min_val, sp_max_val = float(np.min(raw_sp)), float(np.max(raw_sp))
+sp_range = (sp_max_val - sp_min_val) if (sp_max_val - sp_min_val) > 0 else 1
 
-ad_rng = (ad_max - ad_min) if (ad_max - ad_min) > 0 else 1
-sp_rng = (sp_max - sp_min) if (sp_max - sp_min) > 0 else 1
+ad_min_val, ad_max_val = float(np.min(raw_ad)), float(np.max(raw_ad))
+ad_range = (ad_max_val - ad_min_val) if (ad_max_val - ad_min_val) > 0 else 1
 
-# Apply a balanced 5% padding layout rule to perfectly match StockCharts
-ad_limits = [ad_min - (ad_rng * 0.05), ad_max + (ad_rng * 0.05)]
-spx_limits = [sp_min - (sp_rng * 0.05), sp_max + (sp_rng * 0.05)]
+# Scale index swings to proportionally match the absolute height variance of the A/D line
+scaled_sp_line = raw_ad[0] + ((raw_sp - raw_sp[0]) / sp_range) * ad_range * 0.85
 
-# Segment labels down into five clean, identical linear visual rows
-tick_intervals = np.linspace(0, 100, 5)
-left_labels = [f"{int(ad_limits[0] + (ad_rng * 1.1 * p / 100)):,}" for p in tick_intervals]
-right_labels = [f"{int(spx_limits[0] + (sp_rng * 1.1 * p / 100)):,}" for p in tick_intervals]
-# ------------------------------------------------
+# Recalculate strict unified chart axis window boundaries with clean 5% edge padding
+final_combined_min = min(min(raw_ad), min(scaled_sp_line))
+final_combined_max = max(max(raw_ad), max(scaled_sp_line))
+final_combined_range = final_combined_max - final_combined_min
+
+ad_limits = [final_combined_min - (final_combined_range * 0.05), final_combined_max + (final_combined_range * 0.05)]
+
+# Map the right axis price boundaries dynamically to preserve true quote scaling data
+right_axis_min = raw_sp[0] + ((ad_limits[0] - raw_ad[0]) / (ad_range * 0.85)) * sp_range
+right_axis_max = raw_sp[0] + ((ad_limits[1] - raw_ad[0]) / (ad_range * 0.85)) * sp_range
+spx_limits = [right_axis_min, right_axis_max]
+# ------------------------------------------------------------------
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
@@ -880,11 +887,11 @@ if HAS_PLOTLY:
   # Setup subplots with dual y-axes tracking the same visual coordinate plane
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
   
-  # 1. Cumulative A/D Line ($NYAD) - Plotted as the volatile black line
+  # 1. Cumulative A/D Line ($NYAD) - Plotted as the volatile black line (Primary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=raw_ad, # Feeds true un-manipulated pricing entries into the line geometry
+          y=raw_ad, 
           name="$NYAD Cumulative",
           line=dict(color="#000000", width=1.5),
           hovertemplate="Value: %{y:,.2f}<extra></extra>"
@@ -892,14 +899,15 @@ if HAS_PLOTLY:
       secondary_y=False,
   )
 
-  # 2. Market Index Overlay - Plotted as the responsive blue line
+  # 2. Market Index Overlay - Plotted using synced visualization data (Secondary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=raw_sp, # Feeds true un-manipulated pricing entries into the line geometry
+          y=scaled_sp_line, # Feeds synchronized chart array to keep lines locked together on Day 1
           name="NYSE Composite Index",
           line=dict(color="#1d4ed8", width=2),
-          hovertemplate="Index: %{y:,.2f}<extra></extra>"
+          hovertemplate="Index Price: %{text}<extra></extra>",
+          text=[f"{v:,.2f}" for v in raw_sp] # Displays the actual true index quote print inside the hover popup box
       ),
       secondary_y=True,
   )
@@ -935,7 +943,7 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale) - Locked tightly to the custom bounding box
+  # Configure primary Left Y-Axis ($NYAD Scale) - Set to synchronized outer frame boundaries
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
@@ -949,12 +957,12 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale) - Locked tightly to its matching bounding box
+  # Configure secondary Right Y-Axis ($SPX Scale) - Calibrated to display real market quote levels smoothly
   fig_ad.update_yaxes(
       title_text="Index Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
       range=spx_limits, 
-      showgrid=False,  # Strict rule: disable right axis grid to clear dual line interference
+      showgrid=False, # Disable second grid lines to avoid visual overlaps
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,
