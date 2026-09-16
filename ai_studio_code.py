@@ -825,8 +825,8 @@ health_color = (
 
 st.markdown(
     f"""<div style="background-color: #1e293b; border-left: 5px solid {health_color}; padding: 12px 18px; border-radius: 6px; margin-bottom: 15px; color: #ffffff !important;">
-    <span style="color: #ffffff !important; font-weight: normal;">Market Breadth Health:</span> 
-    <span style="font-size: 1.1rem; color: {health_color}; font-weight: 700;">{bullish_count} / {total_indices} Indices ({health_pct}%)</span> 
+    <span style="color: #ffffff !important; font-weight: bold;">Market Breadth Health:</span> 
+    <span style="font-size: 1.1rem; color: {health_color}; font-weight: 700; padding: 0 4px;">{bullish_count} / {total_indices} Indices ({health_pct}%)</span> 
     <span style="color: #ffffff !important; font-weight: normal;">are currently trading <b>ABOVE</b> their {ma_period}-day moving average.</span>
 </div>""", 
     unsafe_allow_html=True
