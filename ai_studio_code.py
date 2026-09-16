@@ -778,74 +778,40 @@ for label, sym, is_vix in indices_to_track:
       w_ma = float(ma_weekly.iloc[-1]) if len(ma_weekly) > 0 else 0.0
       weeks_consec = calculate_consecutive_days_above_ma(weekly_close, ma_weekly)
 
+  # --- CRASH-PROOF N/A REPLACEMENT MATRIX ---
   if last_price == 0.0:
-    sample_defaults = {
-        "^VIX": (17.49, 16.10, 3, 17.50, -4),
-        "^GSPC": (5890.25, 5820.10, 14, 5680.00, 22),
-        "ES=F": (5895.00, 5825.00, 14, 5685.00, 22),
-        "^NDX": (20850.10, 20450.00, 12, 19800.00, 18),
-        "NQ=F": (20880.00, 20475.00, 12, 19820.00, 18),
-        "^RUT": (2245.80, 2210.50, 5, 2150.20, 8),
-        "RTY=F": (2250.00, 2215.00, 5, 2155.00, 8),
-        "^NYA": (19850.00, 19620.00, 8, 19200.00, 15),
-        "^DJI": (43200.50, 42850.00, 9, 41900.00, 16),
-        "^DJT": (16850.20, 16920.00, -2, 16400.00, 6),
-        "^DJU": (980.50, 975.00, 4, 950.00, 11),
-        "^GDAXI": (19450.00, 19200.00, 7, 18800.00, 14),
-        "^STOXX50E": (4980.20, 4920.00, 6, 4850.00, 12),
-        "EWG": (32.40, 31.90, 5, 31.10, 10),
-    }
-    vals = sample_defaults.get(sym, (100.0, 98.0, 3, 95.0, 5))
-    last_price, d_ma, days_consec, w_ma, weeks_consec = vals
+    # If the API connection fails, populate the row fields with clear offline placeholders
+    table_rows.append({
+        "Index / Asset": label,
+        "Ticker": sym,
+        "Last Price": "N/A",
+        f"Daily {ma_period} MA": "N/A",
+        "Days vs MA": "⚪ Offline (N/A)",
+        f"Weekly {ma_period} MA": "N/A",
+        "Weeks vs MA": "⚪ Offline (N/A)",
+        "Regime": "Data Offline (Check Connection)"
+    })
+    continue # Skip the rest of the layout loops for this asset and jump to the next index row
+  # -------------------------------------------
 
   if not is_vix:
     total_indices += 1
-    if days_consec > 0:
-      bullish_count += 1
+    if days_consec > 0: bullish_count += 1
 
-  if is_vix:
-    d_badge = (
-        f"🟢 Below (-{abs(days_consec)}d)"
-        if days_consec < 0
-        else f"🔴 Above (+{days_consec}d)"
-    )
-    w_badge = (
-        f"🟢 Below (-{abs(weeks_consec)}w)"
-        if weeks_consec < 0
-        else f"🔴 Above (+{weeks_consec}w)"
-    )
-    bias = "Bullish Tailwind" if days_consec < 0 else "Caution (Vol Rising)"
-  else:
-    d_badge = (
-        f"🟢 Above (+{days_consec}d)"
-        if days_consec > 0
-        else f"🔴 Below ({days_consec}d)"
-    )
-    w_badge = (
-        f"🟢 Above (+{weeks_consec}w)"
-        if weeks_consec > 0
-        else f"🔴 Below ({weeks_consec}w)"
-    )
-    if days_consec > 0 and weeks_consec > 0:
-      bias = "Strong Bull Trend"
-    elif days_consec < 0 and weeks_consec > 0:
-      bias = "Pullback in Bull Trend"
-    elif days_consec > 0 and weeks_consec < 0:
-      bias = "Counter-trend Rally"
-    else:
-      bias = "Bearish Trend"
+  d_badge = f"🟢 Above (+{days_consec}d)" if (days_consec > 0 if not is_vix else days_consec < 0) else f"🔴 Below ({days_consec}d)"
+  w_badge = f"🟢 Above (+{weeks_consec}w)" if (weeks_consec > 0 if not is_vix else weeks_consec < 0) else f"🔴 Below ({weeks_consec}w)"
+  bias = "Strong Bull Trend" if (days_consec > 0 and weeks_consec > 0) else "Pullback / Caution"
 
   table_rows.append({
-      "Index / Asset": label,
-      "Ticker": sym,
+      "Index / Asset": label, 
+      "Ticker": sym, 
       "Last Price": f"{last_price:,.2f}",
-      f"Daily {ma_period} {ma_type.split()[0]}": f"{d_ma:,.2f}",
-      "Days vs 21 MA": d_badge,
-      f"Weekly {ma_period} {ma_type.split()[0]}": f"{w_ma:,.2f}",
-      "Weeks vs 21 MA": w_badge,
-      "Regime / Health": bias,
+      f"Daily {ma_period} MA": f"{d_ma:,.2f}", 
+      "Days vs MA": d_badge,
+      f"Weekly {ma_period} MA": f"{w_ma:,.2f}", 
+      "Weeks vs MA": w_badge, 
+      "Regime": bias
   })
-
 df_table = pd.DataFrame(table_rows)
 
 health_pct = (
