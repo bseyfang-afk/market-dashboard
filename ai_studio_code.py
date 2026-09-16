@@ -502,7 +502,7 @@ today_str = today_dt.strftime("%A, %B %d, %Y")
 start_str = dates_60d[0].strftime("%b %d, %Y")
 st.title("📈 Pre-Market Morning Routine Dashboard")
 st.caption(
-    "Market Routine Intelligence Console • 60 Trading Days Rolling Window"
+    "OsoPLR Investments - Market analysis • 60 Trading Days Rolling Window"
     f" ({start_str} → {today_str})"
 )
 
