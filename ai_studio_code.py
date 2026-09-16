@@ -165,22 +165,22 @@ def fetch_fear_and_greed():
       history_scores = []
       if hist_list:
         for pt in hist_list[-60:]:
-          history_scores.append(float(pt.get("y", 29.4)))
+          history_scores.append(float(pt.get("y", 28.5)))
       return {
-          "score": round(float(fg.get("score", 29.4)), 1),
+          "score": round(float(fg.get("score", 28.5)), 1),
           "rating": fg.get("rating", "Fear").title(),
-          "prev_close": round(float(fg.get("previous_close", 31.1)), 1),
-          "prev_1_week": round(float(fg.get("previous_1_week", 39.1)), 1),
+          "prev_close": round(float(fg.get("previous_close", 28.7)), 1),
+          "prev_1_week": round(float(fg.get("previous_1_week", 38.2)), 1),
           "prev_1_month": round(float(fg.get("previous_1_month", 45.0)), 1),
           "history_60d": history_scores if len(history_scores) >= 10 else None,
       }
   except Exception:
     pass
   return {
-      "score": 29.4,
+      "score": 28.5,
       "rating": "Fear",
-      "prev_close": 31.1,
-      "prev_1_week": 39.1,
+      "prev_close": 28.7,
+      "prev_1_week": 38.2,
       "prev_1_month": 45.0,
       "history_60d": None,
   }
@@ -322,6 +322,7 @@ def render_60d_chart(
     y_range,
     baseline=None,
     baseline_label=None,
+    extra_traces=None,
 ):
   y_min, y_max = y_range[0], y_range[1]
   safe_values = np.clip(values, y_min, y_max).tolist()
@@ -330,6 +331,26 @@ def render_60d_chart(
 
   if HAS_PLOTLY:
     fig = go.Figure()
+
+    # Render custom horizontal reference lines (e.g. solid continuous red @ 80 and green @ 20)
+    if extra_traces:
+      for tr in extra_traces:
+        fig.add_trace(
+            go.Scatter(
+                x=dates_labels,
+                y=[tr["y"]] * len(dates_labels),
+                mode="lines",
+                line=dict(
+                    color=tr["color"],
+                    width=tr.get("width", 2.8),
+                    dash=tr.get("dash", "solid"),
+                ),
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+    # Render main indicator line
     fig.add_trace(
         go.Scatter(
             x=dates_labels,
@@ -339,6 +360,8 @@ def render_60d_chart(
             hovertemplate="<b>%{x}</b><br>Value: %{y:.2f}<extra></extra>",
         )
     )
+
+    # Render dotted neutral / benchmark line if provided
     if baseline is not None and y_min <= baseline <= y_max:
       fig.add_hline(
           y=baseline,
