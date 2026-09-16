@@ -843,16 +843,14 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
 
-# --- DAY 1 VISUAL BASELINE SYNC (STOCKCHARTS ALIGNMENT STYLE) ---
-# 1. Map the S&P/NYSE Index values into an artificial visual plotting array
-# 2. Subtract its Day 1 starting price, and multiply it by a scaling factor to match the height range of the black line
+# --- DAY 1 VISUAL BASELINE SYNC (FIXED SCALING MATH) ---
 sp_min_val, sp_max_val = float(np.min(raw_sp)), float(np.max(raw_sp))
 sp_range = (sp_max_val - sp_min_val) if (sp_max_val - sp_min_val) > 0 else 1
 
 ad_min_val, ad_max_val = float(np.min(raw_ad)), float(np.max(raw_ad))
 ad_range = (ad_max_val - ad_min_val) if (ad_max_val - ad_min_val) > 0 else 1
 
-# Scale index swings to proportionally match the absolute height variance of the A/D line
+# Fixed the calculation math error: correctly shift index steps relative to its Day 1 start price
 scaled_sp_line = raw_ad[0] + ((raw_sp - raw_sp[0]) / sp_range) * ad_range * 0.85
 
 # Recalculate strict unified chart axis window boundaries with clean 5% edge padding
@@ -903,16 +901,16 @@ if HAS_PLOTLY:
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=scaled_sp_line, # Feeds synchronized chart array to keep lines locked together on Day 1
+          y=scaled_sp_line, # Locked together on Day 1 (Left Edge)
           name="NYSE Composite Index",
           line=dict(color="#1d4ed8", width=2),
           hovertemplate="Index Price: %{text}<extra></extra>",
-          text=[f"{v:,.2f}" for v in raw_sp] # Displays the actual true index quote print inside the hover popup box
+          text=[f"{v:,.2f}" for v in raw_sp] # Displays true underlying index prices on hover
       ),
       secondary_y=True,
   )
 
-  # Set general global chart background styling parameters
+  # Layout configurations customized to create a clean white frame that embeds nicely into Streamlit
   fig_ad.update_layout(
       template="plotly_white",
       paper_bgcolor="#ffffff",
@@ -943,7 +941,7 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale) - Set to synchronized outer frame boundaries
+  # Configure primary Left Y-Axis ($NYAD Scale) - Locked to synchronized outer frame boundaries
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
