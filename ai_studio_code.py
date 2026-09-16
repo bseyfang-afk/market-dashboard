@@ -353,7 +353,7 @@ def render_60d_chart(
     fig.update_layout(
         template="plotly_dark",
         height=130,
-        margin=dict(l=6, r=6, t=6, b=6),
+        margin=dict(l=28, r=8, t=10, b=10),
         xaxis=dict(
             type="category",
             showgrid=False,
@@ -415,7 +415,7 @@ st.subheader(
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# 1. Fear & Greed Card & 60-Day Chart (Axis: ONLY and EXACTLY 0 to 100)
+# 1. Fear & Greed Card (Limits: ONLY and EXACTLY 0 to 100)
 with col1:
   fg_score = fg_data["score"]
   fg_rating = fg_data["rating"]
@@ -453,7 +453,7 @@ with col1:
       baseline_label="Neutral 50",
   )
 
-# 2. VIX Volatility Card & 60-Day Chart (Axis: ONLY and EXACTLY 10 to 40)
+# 2. VIX Volatility Card (Limits: ONLY and EXACTLY 10 to 40)
 vix_sym = tickers_map["VIX (Volatility)"]
 vix_last, vix_high, vix_close, vix_ratio = 17.49, 18.03, 17.49, 0.970
 vix_60d_series = None
@@ -504,7 +504,7 @@ with col2:
       baseline_label="Stress 20",
   )
 
-# 3. VIX Close / High Ratio Card & 60-Day Chart (Axis: ONLY and EXACTLY 0.5 to 1.1)
+# 3. VIX Close / High Ratio Card (Limits: ONLY and EXACTLY 0.5 to 1.1)
 with col3:
   vix_badge = (
       "badge-green"
@@ -535,7 +535,7 @@ with col3:
       baseline_label="Vol Fade 0.92",
   )
 
-# 4. SKEW Index Card & 60-Day Chart (Axis: ONLY and EXACTLY 120 to 180)
+# 4. SKEW Index Card (Limits: ONLY and EXACTLY 120 to 180)
 skew_sym = tickers_map["SKEW Index"]
 skew_val = 152.1
 skew_60d_series = None
@@ -582,7 +582,7 @@ with col4:
       baseline_label="Tail Risk 145",
   )
 
-# 5. Put-Call Ratio Card & 60-Day Chart (Axis: ONLY and EXACTLY 0.6 to 1.5)
+# 5. Put-Call Ratio Card (Limits: ONLY and EXACTLY 0.6 to 1.5)
 with col5:
   pcr_last = pcr_data["pcr_last"]
   pcr_max = pcr_data["pcr_max"]
