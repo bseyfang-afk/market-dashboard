@@ -842,26 +842,24 @@ if not use_live_data:
   t = np.linspace(0, 4 * np.pi, 170)
   raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
 
-# --- COMBINED BASELINE ANCHOR & MIN-MAX AMPLITUDE MATCHING ---
+# --- REVERSED AMPLITUDE NORMALIZATION ---
 ad_low, ad_high = float(np.min(raw_ad_vals)), float(np.max(raw_ad_vals))
 sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
 
 ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
 sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
 
-ad_start_val = float(raw_ad_vals[0])
-sp_start_val = float(raw_sp_vals[0])
+ad_start_val = float(raw_ad_vals)
+sp_start_val = float(raw_sp_vals)
 
-# 1. Start with a baseline percentage structure (0-100% canvas)
-# 2. Re-index the blue line's amplitude movements so its relative gains/losses 
-# are amplified to match the full top-to-bottom height range of the black line,
-# while guaranteeing their Day 1 starting points remain strictly locked together.
-amplitude_multiplier = ad_range_span / sp_range_span
+# REVERSAL FIX: Scale the black A/D line's amplitude UPWARD to match the 
+# high-volatility percentage movements of the blue index line.
+amplitude_multiplier = sp_range_span / ad_range_span
 
-ad_sim = [50.0 + ((v - ad_start_val) / ad_range_span) * 40.0 for v in raw_ad_vals]
-sp_sim = [50.0 + ((v - sp_start_val) / sp_range_span) * 40.0 * amplitude_multiplier for v in raw_sp_vals]
+ad_sim = [50.0 + ((v - ad_start_val) / ad_range_span) * 40.0 * amplitude_multiplier for v in raw_ad_vals]
+sp_sim = [50.0 + ((v - sp_start_val) / sp_range_span) * 40.0 for v in raw_sp_vals]
 
-# Capture the newly expanded synchronized visual boundaries
+# Capture the expanded synchronized visual boundaries
 combined_low = min(min(ad_sim), min(sp_sim))
 combined_high = max(max(ad_sim), max(sp_sim))
 combined_span = combined_high - combined_low
@@ -870,8 +868,8 @@ combined_span = combined_high - combined_low
 axis_ticks = np.linspace(combined_low, combined_high, 5).tolist()
 
 # Reverse-map the scale ticks back into absolute prices for clear label printing
-left_labels = [f"{int(ad_start_val + ((t - 50.0) / 40.0) * ad_range_span):,}" for t in axis_ticks]
-right_labels = [f"{int(sp_start_val + ((t - 50.0) / (40.0 * amplitude_multiplier)) * sp_range_span):,}" for t in axis_ticks]
+left_labels = [f"{int(ad_start_val + ((t - 50.0) / (40.0 * amplitude_multiplier)) * ad_range_span):,}" for t in axis_ticks]
+right_labels = [f"{int(sp_start_val + ((t - 50.0) / 40.0) * sp_range_span):,}" for t in axis_ticks]
 # ------------------------------------------------------------------------
 
 divergence_state = (
