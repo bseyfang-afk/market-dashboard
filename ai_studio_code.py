@@ -832,15 +832,15 @@ if hist_data is not None and "^NYA" in hist_data:
     # Lås sluttpunktet til nøyaktig 12 002.00 i dag
     target_today_nyad = 12002.00
     final_offset = target_today_nyad - scaled_path[-1]
-    raw_ad_vals = scaled_path + final_offset
+    raw_ad_vals = (scaled_path + final_offset).tolist()
     use_live_data = True
 
 if not use_live_data:
   ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
   np.random.seed(42)
-  raw_sp_vals = np.array(7585 + np.cumsum(np.random.randn(170) * 20))
+  raw_sp_vals = np.array(7585 + np.cumsum(np.random.randn(170) * 20)).tolist()
   t = np.linspace(0, 4 * np.pi, 170)
-  raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
+  raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
 
 # --- OPTIMALISERT MIN-MAX OVERLAY-MATEMATIKK ---
 # Finn bunn og topp for begge datasettene uavhengig over hele 8-månedersperioden
@@ -850,16 +850,17 @@ sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
 ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
 sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
 
-ad_start_val = float(raw_ad_vals)
-sp_start_val = float(raw_sp_vals)
+# Fixed the TypeError by isolating the Day 1 scalar value using list index brackets [0]
+ad_start_val = float(raw_ad_vals[0])
+sp_start_val = float(raw_sp_vals[0])
 
 # Normaliser begge seriene til en perfekt felles visuell skala (0% til 100%)
 # Dette tvinger både bunnene og toppene til å utnytte nøyaktig samme vertikale plass
-ad_sim = ((raw_ad_vals - ad_low) / ad_range_span) * 100.0
-sp_sim = ((raw_sp_vals - sp_low) / sp_range_span) * 100.0
+ad_sim = [((v - ad_low) / ad_range_span) * 100.0 for v in raw_ad_vals]
+sp_sim = [((v - sp_low) / sp_range_span) * 100.0 for v in raw_sp_vals]
 
 # Opprett 5 jevnt fordelte referansepunkter på rutenettet
-axis_ticks = [0, 25, 50, 75, 100] # Fixed the SyntaxError here
+axis_ticks = [0.0, 25.0, 50.0, 75.0, 100.0]
 left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
 right_labels = [f"{int(sp_low + (t / 100.0) * sp_range_span):,}" for t in axis_ticks]
 # ------------------------------------------------------------------------
