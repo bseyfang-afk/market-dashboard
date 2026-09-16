@@ -908,18 +908,6 @@ axis_ticks = [0.0, 25.0, 50.0, 75.0, 100.0]
 left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
 right_labels = [f"{int(sp_low + (t / 100.0) * sp_range_span):,}" for t in axis_ticks]
 
-divergence_state = (
-    "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
-    " Cumulative Advance/Decline line is trending lower."
-)
-st.markdown(
-    f"""
-<div style="background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; color: #fca5a5; padding: 14px 18px; border-radius: 6px; margin-bottom: 15px;">
-    <b>Divergence Status:</b> {divergence_state}
-</div>
-""",
-    unsafe_allow_html=True,
-)
 
 if HAS_PLOTLY:
   from plotly.subplots import make_subplots
