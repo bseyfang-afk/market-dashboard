@@ -851,9 +851,9 @@ spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
 ad_norm = ((ad_raw - ad_min) / ad_range) * 100.0
 spx_norm = ((spx_raw - spx_min) / spx_range) * 100.0
 
-# Extract Day 1 starting point scalar numbers (index 0)
-day1_ad_pct = float(ad_norm)
-day1_spx_pct = float(spx_norm)
+# Fixed the TypeError: Extract the Day 1 starting position using explicit [0] index brackets
+day1_ad_pct = float(ad_norm[0])
+day1_spx_pct = float(spx_norm[0])
 
 # CRITICAL OVERLAY ADJUSTMENT: Shift the blue index line vertically 
 # so its Day 1 point matches the black line perfectly on the left margin
