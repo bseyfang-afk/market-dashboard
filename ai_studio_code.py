@@ -59,7 +59,7 @@ st.markdown(
         line-height: 1.2;
     }
     .metric-sub {
-        font-size: 0.72rem;
+        font-size: 1.1rem;
         color: #ffffff;
         margin-top: 3px;
     }
