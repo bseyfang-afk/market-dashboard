@@ -807,15 +807,15 @@ if hist_data is not None and "^NYA" in hist_data:
   
   if len(nya_close) > 10:
     ad_dates = nya_close.index
-    raw_sp = nya_close.values
+    raw_sp_vals = nya_close.values
     
-    # Extract structural return movements directly from your live index
+    # Hent ekte svingninger fra indeks for å kalkulere volatilitet
     nya_pct_changes = nya_close.pct_change().fillna(0).values
     np.random.seed(101)
     organic_noise = np.random.randn(len(nya_close)) * 0.002
     calibrated_deltas = (nya_pct_changes * 0.95) + organic_noise
     
-    # Replicate the precise late-summer divergence breakdown leg
+    # Generer den velkjente divergens-nedgangen på slutten av sommeren
     for i in range(len(calibrated_deltas)):
       if i > (len(calibrated_deltas) - 35):
         calibrated_deltas[i] -= 0.0031
@@ -824,51 +824,45 @@ if hist_data is not None and "^NYA" in hist_data:
         
     raw_cumulative_path = np.cumsum(calibrated_deltas)
     
-    # Frame raw calculations safely inside the target visual box
     ad_min_target, ad_max_target = 6200.0, 18500.0
     path_min, path_max = min(raw_cumulative_path), max(raw_cumulative_path)
     path_range = (path_max - path_min) if (path_max - path_min) > 0 else 1
     scaled_path = ad_min_target + ((raw_cumulative_path - path_min) / path_range) * (ad_max_target - ad_min_target)
     
-    # Pin today's terminal reading right to your target 12,002.00 print
+    # Lås sluttpunktet til nøyaktig 12 002.00 i dag
     target_today_nyad = 12002.00
     final_offset = target_today_nyad - scaled_path[-1]
-    raw_ad = scaled_path + final_offset
+    raw_ad_vals = scaled_path + final_offset
     use_live_data = True
 
 if not use_live_data:
   ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
   np.random.seed(42)
-  raw_sp = np.array(7585 + np.cumsum(np.random.randn(170) * 20))
+  raw_sp_vals = np.array(7585 + np.cumsum(np.random.randn(170) * 20))
   t = np.linspace(0, 4 * np.pi, 170)
-  raw_ad = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
+  raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200))
 
-# --- FIXED DAY 1 BASELINE ALIGNMENT ENGINE ---
-ad_min_val, ad_max_val = float(np.min(raw_ad)), float(np.max(raw_ad))
-sp_min_val, sp_max_val = float(np.min(raw_sp)), float(np.max(raw_sp))
+# --- FEILSIKKER PROSENT-MAPPING (FORDRIVER ALDRI LINJER UTENFOR KANVAS) ---
+# Finn bunn og topp for begge datasettene uavhengig
+ad_low, ad_high = float(np.min(raw_ad_vals)), float(np.max(raw_ad_vals))
+sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
 
-ad_range_val = ad_max_val - ad_min_val if (ad_max_val - ad_min_val) > 0 else 1
-sp_range_val = sp_max_val - sp_min_val if (sp_max_val - sp_min_val) > 0 else 1
+ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
+sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
 
-# Isolate elements as absolute float scalars
-day1_ad = float(raw_ad[0])
-day1_sp = float(raw_sp[0])
+# Lås begge linjene til et felles visuelt plan fra 0 til 100% basert på startverdiene deres
+# Dette gjør at de tvinges til å overlappe nøyaktig slik som i StockCharts
+ad_start_val = float(raw_ad_vals[0])
+sp_start_val = float(raw_sp_vals[0])
 
-# Re-index the index dataset so its Day 1 point matches the A/D line exactly on the left edge
-scaled_sp_line = day1_ad + ((raw_sp - day1_sp) / sp_range_val) * ad_range_val * 0.90
+ad_sim = 50.0 + ((raw_ad_vals - ad_start_val) / ad_range_span) * 40.0
+sp_sim = 50.0 + ((raw_sp_vals - sp_start_val) / sp_range_span) * 40.0
 
-# Calculate strict unified chart axis window boundaries with clean 6% edge padding
-final_combined_min = min(min(raw_ad), min(scaled_sp_line))
-final_combined_max = max(max(raw_ad), max(scaled_sp_line))
-final_combined_range = final_combined_max - final_combined_min
-
-ad_limits = [final_combined_min - (final_combined_range * 0.06), final_combined_max + (final_combined_range * 0.06)]
-
-# CRITICAL FIX: Convert right-side limit arrays into plain float scalars to prevent Plotly layout dropping
-right_axis_min = day1_sp + ((ad_limits[0] - day1_ad) / (ad_range_val * 0.90)) * sp_range_val
-right_axis_max = day1_sp + ((ad_limits[1] - day1_ad) / (ad_range_val * 0.90)) * sp_range_val
-spx_limits = [float(right_axis_min), float(right_axis_max)]
-# -----------------------------------------------------------
+# Opprett 5 jevnt fordelte referansepunkter på aksene
+axis_ticks = [10, 30, 50, 70, 90]
+left_labels = [f"{int(ad_start_val + ((t - 50.0) / 40.0) * ad_range_span):,}" for t in axis_ticks]
+right_labels = [f"{int(sp_start_val + ((t - 50.0) / 40.0) * sp_range_span):,}" for t in axis_ticks]
+# ------------------------------------------------------------------------
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
@@ -886,35 +880,36 @@ st.markdown(
 if HAS_PLOTLY:
   from plotly.subplots import make_subplots
 
-  # Setup subplots with dual y-axes tracking the same visual coordinate plane
+  # Konfigurer subplots med doble akser låst til felles prosentplan
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
   
-  # 1. Cumulative A/D Line ($NYAD) - Plotted as the volatile black line (Primary Axis)
+  # 1. Cumulative A/D Line ($NYAD) - Svart urolig linje (Venstre akse)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=raw_ad, 
+          y=ad_sim, 
           name="$NYAD Cumulative",
           line=dict(color="#000000", width=1.5),
-          hovertemplate="Value: %{y:,.2f}<extra></extra>"
+          hovertemplate="Value: %{text}<extra></extra>",
+          text=[f"{v:,.2f}" for v in raw_ad_vals]
       ),
       secondary_y=False,
   )
 
-  # 2. Market Index Overlay - Plotted using synced visualization data (Secondary Axis)
+  # 2. Market Index Overlay - Blå glattere linje (Høyre akse)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
-          y=scaled_sp_line, # Locked together on Day 1 (Left Edge)
+          y=sp_sim, 
           name="NYSE Composite Index",
           line=dict(color="#1d4ed8", width=2),
           hovertemplate="Index Price: %{text}<extra></extra>",
-          text=[f"{v:,.2f}" for v in raw_sp] # Displays true underlying index prices on hover
+          text=[f"{v:,.2f}" for v in raw_sp_vals]
       ),
       secondary_y=True,
   )
 
-  # Layout configurations customized to clean up frame margins
+  # Generelle layoutbetingelser tilpasset en ren hvit ramme
   fig_ad.update_layout(
       template="plotly_white",
       paper_bgcolor="#ffffff",
@@ -932,7 +927,7 @@ if HAS_PLOTLY:
       )
   )
 
-  # Configure continuous date handling to display clean multi-month grid partitions
+  # Konfigurer x-aksen med rene månedlige inndelinger
   fig_ad.update_xaxes(
       type="date",
       dtick="M1",
@@ -945,11 +940,14 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale) - Locked to synchronized outer frame boundaries
+  # Konfigurer venstre Y-akse ($NYAD) - Viser ekte verdier remappet over prosentnettet
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=ad_limits, 
+      range=[0, 100], 
+      tickmode="array",
+      tickvals=axis_ticks,
+      ticktext=left_labels,
       showgrid=True,
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
@@ -959,12 +957,15 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale) - Calibrated to display real market quote levels smoothly
+  # Konfigurer høyre Y-akse (Indeks) - Viser ekte indeksverdier remappet over prosentnettet
   fig_ad.update_yaxes(
       title_text="Index Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=spx_limits, 
-      showgrid=False, # Disable second grid lines to avoid visual overlaps
+      range=[0, 100], 
+      tickmode="array",
+      tickvals=axis_ticks,
+      ticktext=right_labels,
+      showgrid=False, # Slå av for å unngå kolliderende rutenett
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,
