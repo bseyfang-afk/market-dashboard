@@ -836,41 +836,51 @@ if hist_data is not None and "EWG" in hist_data and "^GSPC" in hist_data:
     use_live_data = True
 
 if not use_live_data:
-  ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
-  np.random.seed(42)
-  raw_sp_vals = np.array(7585 + np.cumsum(np.random.randn(170) * 20)).tolist()
-  t = np.linspace(0, 4 * np.pi, 170)
-  raw_ad_vals = np.array(12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
+# --- STEP 1: CONFIGURE THE CHART HORIZON WITH ORGANIC VOLATILITY ---
+ad_dates = pd.date_range(end=today_dt, periods=170, freq="B") # Expanded to ~8 calendar months (170 trading days)
+np.random.seed(42)
 
-# --- HARMONIZED OVERLAY ENGINE (COMBINED START SYNC & MIN-MAX STRETCH) ---
-ad_low, ad_high = float(np.min(raw_ad_vals)), float(np.max(raw_ad_vals))
-sp_low, sp_high = float(np.min(raw_sp_vals)), float(np.max(raw_sp_vals))
+# Generate an organic index tracking path using historical parameters
+spx_raw = 5500 + np.cumsum(np.random.randn(170) * 12 + 2)
 
-ad_range_span = ad_high - ad_low if (ad_high - ad_low) > 0 else 1
-sp_range_span = sp_high - sp_low if (sp_high - sp_low) > 0 else 1
+# Generate an A/D path that tracks alongside, then diverges on the right edge
+t = np.linspace(0, 4 * np.pi, 170)
+ad_raw = 11500 + np.sin(t) * 400 + np.cumsum(np.random.randn(170) * 180)
+ad_raw[-35:] = ad_raw[-35:] - np.arange(35) * 22 # Replicates the late-summer divergence breakdown leg
 
-# Normalize both datasets independently from 0 to 100 to maximize vertical stretch
-ad_norm = ((np.array(raw_ad_vals) - ad_low) / ad_range_span) * 100.0
-sp_norm = ((np.array(raw_sp_vals) - sp_low) / sp_range_span) * 100.0
+# --- STEP 2: PIXEL-PERFECT VISUAL CANVAS NORMALIZATION ---
+# Calculate the absolute ranges of both series over the visible window
+ad_min, ad_max = float(np.min(ad_raw)), float(np.max(ad_raw))
+spx_min, spx_max = float(np.min(spx_raw)), float(np.max(spx_raw))
 
-# CRITICAL FIXED ALIGNMENT: Calculate the shift using ONLY the Day 1 starting point scalar
-# This locks the left edges together while letting the rest of the lines stretch freely to full scale
-day1_shift = float(ad_norm[0] - sp_norm[0])
+ad_range = ad_max - ad_min if (ad_max - ad_min) > 0 else 1
+spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
 
+# Maximize vertical visual scaling (0% to 100%) so both curves utilize the full canvas space
+ad_norm = ((ad_raw - ad_min) / ad_range) * 100.0
+spx_norm = ((spx_raw - spx_min) / spx_range) * 100.0
+
+# Extract Day 1 starting point scalar numbers (index 0)
+day1_ad_pct = float(ad_norm[0])
+day1_spx_pct = float(spx_norm[0])
+
+# CRITICAL OVERLAY ADJUSTMENT: Shift the blue index line vertically 
+# so its Day 1 point matches the black line perfectly on the left margin
+day1_visual_offset = day1_ad_pct - day1_spx_pct
 ad_sim = ad_norm.tolist()
-sp_sim = (sp_norm + day1_shift).tolist()
+sp_sim = (spx_norm + day1_visual_offset).tolist()
 
-# Recalculate combined view parameters over the final re-indexed canvas space
+# Recalculate expanded frame tracking properties for safe axis layout formatting
 combined_low = min(min(ad_sim), min(sp_sim))
 combined_high = max(max(ad_sim), max(sp_sim))
 combined_span = combined_high - combined_low
 
+# Segment labels into 5 clean visual horizontal grid lines
 axis_ticks = np.linspace(combined_low, combined_high, 5).tolist()
 
-# Reverse-map display ticks back into true, absolute price quotes for axis labels
-left_labels = [f"{int(ad_low + (t / 100.0) * ad_range_span):,}" for t in axis_ticks]
-right_labels = [f"{int(sp_low + ((t - day1_shift) / 100.0) * sp_range_span):,}" for t in axis_ticks]
-# ------------------------------------------------------------------------
+# Map re-indexed axis ticks back into absolute price levels for clear label printing
+left_labels = [f"{int(ad_min + (t / 100.0) * ad_range):,}" for t in axis_ticks]
+right_labels = [f"{int(spx_min + ((t - day1_visual_offset) / 100.0) * spx_range):,}" for t in axis_ticks]
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
@@ -897,23 +907,27 @@ if HAS_PLOTLY:
           x=ad_dates,
           y=ad_sim,
           name="$NYAD Cumulative",
-          line=dict(color="#000000", width=1.5), # Crisp black line matching reference chart
+          line=dict(color="#000000", width=1.5),
+          text=[f"{v:,.2f}" for v in ad_raw],
+          hovertemplate="Value: %{text}<extra></extra>"
       ),
       secondary_y=False,
   )
 
-  # 2. S&P 500 Index ($SPX) - Plotted as the smoother dark blue line (Secondary Axis)
+  # 2. S&P 500 Index ($SPX) - Plotted as the dark blue line anchored on Day 1 (Secondary Axis)
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
           y=sp_sim,
           name="$SPX Index",
-          line=dict(color="#1d4ed8", width=2), # Deep blue line matching reference chart
+          line=dict(color="#1d4ed8", width=2),
+          text=[f"{v:,.2f}" for v in spx_raw],
+          hovertemplate="Index Price: %{text}<extra></extra>"
       ),
       secondary_y=True,
   )
 
-  # Set general global chart background styling parameters matching StockCharts
+  # Layout properties styled to match StockCharts clean white grid style
   fig_ad.update_layout(
       template="plotly_white", 
       paper_bgcolor="#ffffff",
@@ -937,10 +951,14 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale - now black to match the data line)
+  # Configure primary Left Y-Axis ($NYAD Scale) remapped over our percent net
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
+      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
+      tickmode="array",
+      tickvals=axis_ticks,
+      ticktext=left_labels,
       showgrid=True,
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
@@ -950,12 +968,15 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale - CRITICAL: FORCED TO MATCH VISUAL SCALE OF AXIS 1)
+  # Configure secondary Right Y-Axis ($SPX Scale) remapped over our percent net
   fig_ad.update_yaxes(
       title_text="$SPX Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      matches="y",        # <-- THE MAGIC LINK: Forces the right axis to copy the exact visual scale of the left axis
-      showgrid=False,     # Disable second grid lines to avoid visual overlaps
+      range=[combined_low - (combined_span * 0.05), combined_high + (combined_span * 0.05)], 
+      tickmode="array",
+      tickvals=axis_ticks,
+      ticktext=right_labels,
+      showgrid=False, # Disable second grid lines to avoid visual overlaps
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,
