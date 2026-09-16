@@ -832,7 +832,7 @@ if hist_data is not None and "^GSPC" in hist_data:
     ad_raw = (scaled_path + (target_today_nyad - scaled_path[-1]))
 
 # 2. Feilsikker fallback: Opprett organiske simuleringsdata hvis API-matingen svikter
-if ad_dates || True: # Guarantees execution alignment if connection loops hang
+if ad_dates is None:
   ad_dates = pd.date_range(end=today_dt, periods=170, freq="B")
   np.random.seed(42)
   spx_raw = 5500 + np.cumsum(np.random.randn(170) * 12 + 2)
