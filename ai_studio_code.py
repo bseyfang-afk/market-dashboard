@@ -847,9 +847,9 @@ spx_min, spx_max = float(np.min(spx_raw)), float(np.max(spx_raw))
 ad_range = ad_max - ad_min if (ad_max - ad_min) > 0 else 1
 spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
 
-# Extract Day 1 absolute starting values to anchor the left edge
-day1_ad_raw = float(ad_raw)
-day1_spx_raw = float(spx_raw)
+# Fixed the TypeError: Extract the Day 1 starting scalars using explicit element index brackets
+day1_ad_raw = float(ad_raw[0])
+day1_spx_raw = float(spx_raw[0])
 
 # AMPLITUDE MODIFIER MATH: 
 # 1. Measure daily returns relative to Day 1.
