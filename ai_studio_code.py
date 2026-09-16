@@ -342,7 +342,7 @@ def render_60d_chart(
                 mode="lines",
                 line=dict(
                     color=tr["color"],
-                    width=tr.get("width", 1.5),
+                    width=tr.get("width", 2.8),
                     dash=tr.get("dash", "solid"),
                 ),
                 hoverinfo="skip",
