@@ -813,7 +813,7 @@ if hist_data is not None and "^NYA" in hist_data:
     ad_dates = nya_close.index
     sp_sim = nya_close.tolist() # The blue line now represents the true NYSE Index tracking path
     
-    # Generate real-time volatile adjustments off the true index returns
+    # Extract true return structures to feed our volatile breadth calculation model
     nya_pct_changes = nya_close.pct_change().fillna(0).values
     
     np.random.seed(101)
@@ -849,6 +849,11 @@ if not use_live_data:
   sp_sim = (7585 + np.cumsum(np.random.randn(170) * 20)).tolist()
   t = np.linspace(0, 4 * np.pi, 170)
   ad_sim = (12002 + np.sin(t) * 3500 + np.cumsum(np.random.randn(170) * 200)).tolist()
+
+# Calculate tight padding boundaries for the right axis to prevent rounding clipping
+spx_min, spx_max = min(sp_sim), max(sp_sim)
+spx_range = spx_max - spx_min if (spx_max - spx_min) > 0 else 1
+spx_limits = [spx_min - (spx_range * 0.04), spx_max + (spx_range * 0.04)]
 
 divergence_state = (
     "🔴 Bearish Divergence Alert: Broad market index is testing recent swing highs, but"
@@ -926,7 +931,7 @@ if HAS_PLOTLY:
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
-      range=[5000, 19000], # HARD BOUNDARIES MATCHING STOCKCHARTS LEFT AXIS FRAME
+      range=, # HARD BOUNDARIES MATCHING STOCKCHARTS LEFT AXIS FRAME
       dtick=1000,
       showgrid=True,
       gridcolor="#e2e8f0",
@@ -937,12 +942,11 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale) - Locked to perfectly match the right axis frame
+  # Configure secondary Right Y-Axis ($SPX Scale) - Dynamically framed to keep the blue line safe inside the graph
   fig_ad.update_yaxes(
       title_text="Index Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      range=[5000, 19500], # HARD BOUNDARIES MATCHING STOCKCHARTS RIGHT AXIS FRAME
-      dtick=1000,
+      range=spx_limits, # Dynamic limits automatically adapt to wherever the index trades
       showgrid=False,
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
