@@ -109,7 +109,7 @@ st.markdown(
 # Sidebar Settings & Data Sources
 # ---------------------------------------------------------
 st.sidebar.title("⚡ Morning Routine Settings")
-st.sidebar.markdown("**Swing Trader Console**")
+st.sidebar.markdown("**Trader Console**")
 
 routine_mode = st.sidebar.radio(
     "View Horizon", ["Daily Morning Routine", "Weekly Review"], index=0
@@ -500,7 +500,7 @@ def render_60d_chart(
 # ---------------------------------------------------------
 today_str = today_dt.strftime("%A, %B %d, %Y")
 start_str = dates_60d[0].strftime("%b %d, %Y")
-st.title("📈 Swing Trader Pre-Market Dashboard")
+st.title("📈 Pre-Market Morning Routine Dashboard")
 st.caption(
     "Market Routine Intelligence Console • 60 Trading Days Rolling Window"
     f" ({start_str} → {today_str})"
@@ -1112,7 +1112,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ---------------------------------------------------------
 st.subheader("5. AI Automated Morning Routine Briefing")
 
-if st.button("🚀 Generate AI Pre-Market Swing Trade Briefing"):
+if st.button("🚀 Generate AI Pre-Market Trade Briefing"):
   # Calculate a live macro market posture grade based on Section 2's true calculation values
   if health_pct >= 75.0:
     regime_grade = "🟢 Aggressive Risk-On (Strong Bullish Dominance)"
