@@ -129,12 +129,12 @@ refresh_btn = st.sidebar.button("🔄 Force Refresh All Data")
 
 st.sidebar.markdown("### 🌐 Official Data Feeds & Sources")
 st.sidebar.markdown("""
-* 📊 **Fear & Greed:** [CNN Business Feed](https://edition.cnn.com/markets/fear-and-greed)
-* 📉 **VIX & SKEW Index:** [CBOE Volatility Products](https://www.cboe.com/tradable_products/vix/)
-* ⚖️ **Put/Call Ratio:** [CBOE Options Statistics](https://www.cboe.com/markets/us/options/market-statistics/)
-* 🏛️ **NYSE & NASDAQ A/D Line:** [StockCharts ($NYAD)](https://stockcharts.com/sc3/ui/?s=$nyad)
-* 🚀 **Momentum & Volume:** [Barchart Market Momentum](https://www.barchart.com/stocks/momentum)
-* 📈 **Equities Feed:** [Yahoo Finance Feed](https://finance.yahoo.com)
+* 📊 **Fear & Greed Index:** [CNN Business Live Feed](https://cnn.com)
+* 📉 **VIX & SKEW Volatility:** [CBOE Volatility Products Console](https://cboe.com)
+* ⚖️ **Put/Call Ratios:** [CBOE Options Market Statistics](https://cboe.com)
+* 🏛️ **NYSE & NASDAQ A/D Line:** [StockCharts $NYAD Charting Hub](https://stockcharts.com)
+* 🚀 **Exchange Volume & Breadth:** [CBOE Institutional Data Hub](https://cboe.com)
+* 📈 **Global Benchmark Feeds:** [Yahoo Finance Real-Time Dashboard](https://yahoo.com)
 """)
 
 # ---------------------------------------------------------
