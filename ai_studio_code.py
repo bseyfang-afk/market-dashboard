@@ -916,7 +916,7 @@ if HAS_PLOTLY:
       paper_bgcolor="#ffffff",
       plot_bgcolor="#ffffff",
       height=400,
-      margin=dict(l=20, r=60, t=30 holiday=None, b=20),
+      margin=dict(l=20, r=60, t=30, b=20), # Fixed the SyntaxError here
       showlegend=True,
       legend=dict(
           orientation="h",
