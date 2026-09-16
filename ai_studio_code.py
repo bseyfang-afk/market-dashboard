@@ -817,17 +817,22 @@ df_table = pd.DataFrame(table_rows)
 health_pct = (
     round((bullish_count / total_indices) * 100, 1) if total_indices > 0 else 0
 )
+health_color = (
+    "#22c55e"
+    if health_pct >= 70
+    else ("#eab308" if health_pct >= 45 else "#ef4444")
+)
 
-# --- NATIVE HIGH-VISIBILITY MARKET HEALTH BANNER (FIXED) ---
-health_msg = f"Market Breadth Health: {bullish_count} / {total_indices} Indices ({health_pct}%) are currently trading ABOVE their {ma_period}-day moving average."
-
-if health_pct >= 70:
-  st.success(health_msg) # Renders a clean green alert block with high-contrast white text
-elif health_pct >= 45:
-  st.warning(health_msg) # Renders a clean yellow alert block with high-contrast white text
-else:
-  st.error(health_msg)   # Renders a clean red alert block with high-contrast white text
-# -----------------------------------------------------------
+st.markdown(
+    f"""<div style="background-color: #1e293b; border-left: 5px solid {health_color}; padding: 12px 18px; border-radius: 6px; margin-bottom: 15px; color: #ffffff !important;">
+    <p style="margin: 0; padding: 0; color: #ffffff !important; display: inline-block;">
+        <span style="color: #ffffff !important; font-weight: bold; font-size: 1rem;">Market Breadth Health:</span> 
+        <span style="font-size: 1.1rem; color: {health_color} !important; font-weight: 700; padding: 0 6px;">{bullish_count} / {total_indices} Indices ({health_pct}%)</span> 
+        <span style="color: #ffffff !important; font-weight: normal; font-size: 1rem;">are currently trading <b>ABOVE</b> their {ma_period}-day moving average.</span>
+    </p>
+</div>""", 
+    unsafe_allow_html=True
+)
 
 # Fixed layout row: forces the container canvas to expand fully so no rows are clipped or hidden
 st.dataframe(
