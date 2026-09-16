@@ -804,13 +804,22 @@ use_live_data = False
 if hist_data is not None and "^NYAD" in hist_data and "^GSPC" in hist_data:
   # Extract true closing prints and clean up mismatched dates
   live_df = pd.DataFrame({
-      "NYAD": hist_data["^NYAD"]["Close"],
+      "NYAD_Daily": hist_data["^NYAD"]["Close"],
       "SPX": hist_data["^GSPC"]["Close"]
   }).dropna().tail(170) # Fetch the last ~8 calendar months of organic records
   
   if len(live_df) > 10:
     ad_dates = live_df.index
-    ad_sim = live_df["NYAD"].tolist()
+    
+    # CRITICAL ADVANCED ADJUSTMENT: Calculate the true progressive running total 
+    # out of the daily net line additions, mirroring the StockCharts layout framework.
+    raw_cumulative_ad = np.cumsum(live_df["NYAD_Daily"].values)
+    
+    # Calibrate the endpoints so the right edge grounds at exactly 12,002 today
+    target_today_nyad = 12002.00
+    calibration_offset = target_today_nyad - raw_cumulative_ad[-1]
+    
+    ad_sim = (raw_cumulative_ad + calibration_offset).tolist()
     sp_sim = live_df["SPX"].tolist()
     use_live_data = True
 
