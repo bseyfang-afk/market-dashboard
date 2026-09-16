@@ -846,7 +846,7 @@ if HAS_PLOTLY:
       secondary_y=True,
   )
 
-  # Layout properties styled to match StockCharts clean white grid style
+  # Layout properties simplified to avoid version-specific property crashes
   fig_ad.update_layout(
       template="plotly_white", # Bright white background theme
       paper_bgcolor="#ffffff",
@@ -856,10 +856,7 @@ if HAS_PLOTLY:
       xaxis=dict(
           showgrid=True,
           gridcolor="#e2e8f0",
-          tickfont=dict(color="#475569", size=10),
-          mirror=True,
-          linewidth=1,
-          linecolor="#cbd5e1"
+          tickfont=dict(color="#475569", size=10)
       ),
       yaxis=dict(
           title="$NYAD Cumulative Scale",
@@ -867,10 +864,7 @@ if HAS_PLOTLY:
           showgrid=True,
           gridcolor="#e2e8f0",
           tickfont=dict(color="#475569", size=10),
-          side="left",
-          mirror=True,
-          linewidth=1,
-          linecolor="#cbd5e1"
+          side="left"
       ),
       yaxis2=dict(
           title="$SPX Price Scale",
@@ -878,10 +872,7 @@ if HAS_PLOTLY:
           showgrid=False, # Disable second grid lines to avoid visual overlaps
           tickfont=dict(color="#475569", size=10),
           side="right",
-          overlaying="y",
-          mirror=True,
-          linewidth=1,
-          linecolor="#cbd5e1"
+          overlaying="y"
       ),
       showlegend=True,
       legend=dict(
