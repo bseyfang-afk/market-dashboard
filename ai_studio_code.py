@@ -832,7 +832,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.dataframe(df_table, use_container_width=True, hide_index=True)
+# Fixed layout row: forces the container canvas to expand fully so no rows are clipped or hidden
+st.dataframe(
+    df_table, 
+    use_container_width=True, 
+    hide_index=True,
+    height=440 # Calibrated height boundaries to fit all 11 asset rows on screen simultaneously
+)
+
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
