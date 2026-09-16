@@ -866,6 +866,16 @@ if HAS_PLOTLY:
       secondary_y=True,
   )
 
+  # --- DYNAMIC MIN-MAX AXIS SCALE ALIGNMENT ---
+  # Compute absolute boundary thresholds to synchronize left and right scaling windows
+  nyad_min, nyad_max = min(ad_sim), max(ad_sim)
+  spx_min, spx_max = min(sp_sim), max(sp_sim)
+
+  # Inject a small 5% buffer padding on outer margins to keep line apexes from clipping the edges
+  nyad_pad = (nyad_max - nyad_min) * 0.05
+  spx_pad = (spx_max - spx_min) * 0.05
+  # ---------------------------------------------
+
   # Set general global chart background styling parameters
   fig_ad.update_layout(
       template="plotly_white", # Bright white background theme matching StockCharts
@@ -897,10 +907,11 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure primary Left Y-Axis ($NYAD Scale - matching the black data line)
+  # Configure primary Left Y-Axis ($NYAD Scale) with strict synchronized bounds
   fig_ad.update_yaxes(
       title_text="$NYAD Cumulative Scale",
       title_font=dict(color="#000000", size=11),
+      range=[nyad_min - nyad_pad, nyad_max + nyad_pad], # Hard-coded window scale min/max boundaries
       showgrid=True,     # Keep left axis grid lines active as the dominant guide grid
       gridcolor="#e2e8f0",
       tickfont=dict(color="#475569", size=10),
@@ -910,11 +921,12 @@ if HAS_PLOTLY:
       linecolor="#cbd5e1"
   )
 
-  # Configure secondary Right Y-Axis ($SPX Scale - matching the blue data line)
+  # Configure secondary Right Y-Axis ($SPX Scale) mapped to identical relative margins
   fig_ad.update_yaxes(
       title_text="$SPX Price Scale",
       title_font=dict(color="#1d4ed8", size=11),
-      showgrid=False,    # Strict rule: disable right axis grid to clear dual interference
+      range=[spx_min - spx_pad, spx_max + spx_pad],     # Hard-coded window scale min/max boundaries
+      showgrid=False,    # Disable right axis grid to clear dual chart line interference
       tickfont=dict(color="#475569", size=10),
       secondary_y=True,
       mirror=True,       # Enforces a complete box frame around the canvas
