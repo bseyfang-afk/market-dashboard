@@ -821,30 +821,77 @@ st.markdown(
 if HAS_PLOTLY:
   from plotly.subplots import make_subplots
 
+  # Setup subplots with dual y-axes tracking the same visual coordinate plane
   fig_ad = make_subplots(specs=[[{"secondary_y": True}]])
-  fig_ad.add_trace(
-      go.Scatter(
-          x=ad_dates,
-          y=sp_sim,
-          name="S&P 500 Index",
-          line=dict(color="#38bdf8", width=2.5),
-      ),
-      secondary_y=False,
-  )
+  
+  # 1. Cumulative A/D Line ($NYAD) - Plotted as the thick dark blue line
   fig_ad.add_trace(
       go.Scatter(
           x=ad_dates,
           y=ad_sim,
-          name="Cumulative NYSE A/D Line ($NYAD)",
-          line=dict(color="#f59e0b", width=2, dash="dot")),
+          name="$NYAD Cumulative",
+          line=dict(color="#1d4ed8", width=2), # Solid blue line matching reference chart
+      ),
+      secondary_y=False,
+  )
+
+  # 2. S&P 500 Index ($SPX) - Plotted as the overlay solid dark line
+  fig_ad.add_trace(
+      go.Scatter(
+          x=ad_dates,
+          y=sp_sim,
+          name="$SPX Index",
+          line=dict(color="#1e293b", width=2), # Dark grey/black tone matching reference chart
+      ),
       secondary_y=True,
   )
+
+  # Layout properties styled to match StockCharts clean white grid style
   fig_ad.update_layout(
-      template="plotly_dark",
-      paper_bgcolor="#111827",
-      plot_bgcolor="#111827",
-      height=340,
-      margin=dict(l=20, r=20, t=30, b=20),
+      template="plotly_white", # Bright white background theme
+      paper_bgcolor="#ffffff",
+      plot_bgcolor="#ffffff",
+      height=400,
+      margin=dict(l=20, r=60, t=30, b=20),
+      xaxis=dict(
+          showgrid=True,
+          gridcolor="#e2e8f0",
+          tickfont=dict(color="#475569", size=10),
+          mirror=True,
+          linewidth=1,
+          linecolor="#cbd5e1"
+      ),
+      yaxis=dict(
+          title="$NYAD Cumulative Scale",
+          titlefont=dict(color="#1d4ed8", size=11),
+          showgrid=True,
+          gridcolor="#e2e8f0",
+          tickfont=dict(color="#475569", size=10),
+          side="left",
+          mirror=True,
+          linewidth=1,
+          linecolor="#cbd5e1"
+      ),
+      yaxis2=dict(
+          title="$SPX Price Scale",
+          titlefont=dict(color="#1e293b", size=11),
+          showgrid=False, # Disable second grid lines to avoid visual overlaps
+          tickfont=dict(color="#475569", size=10),
+          side="right",
+          overlaying="y",
+          mirror=True,
+          linewidth=1,
+          linecolor="#cbd5e1"
+      ),
+      showlegend=True,
+      legend=dict(
+          orientation="h",
+          yanchor="bottom",
+          y=1.02,
+          xanchor="left",
+          x=0.01,
+          font=dict(size=10)
+      )
   )
   st.plotly_chart(fig_ad, use_container_width=True)
 
